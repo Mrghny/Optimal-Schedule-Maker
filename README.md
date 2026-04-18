@@ -59,7 +59,7 @@ A standalone terminal version with 7 sample subjects included to try out immedia
 Outputs a paginated `schedules.html` file with all ranked schedule options.
 
 #### Download
-[⬇️ Download ScheduleMaker.exe](https://github.com/<USERNAME>/<REPO>/releases/latest/download/ScheduleMaker.exe)
+[⬇️ Download ScheduleMaker.exe](https://github.com/Mrghny/Optimal-Schedule-Maker-CLI/releases/download/v1.0/ScheduleMaker)
 
 > Windows only. On first run, click **"More info" → "Run anyway"** if Windows Defender
 > shows a warning.
