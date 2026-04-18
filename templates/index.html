@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AASTMT Schedule Optimizer</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            /* Professional Palette */
+            --c1: #dbeafe; --c2: #fef3c7; --c3: #dcfce7; 
+            --c4: #fae8ff; --c5: #ffedd5; --c6: #e0e7ff; --c7: #f1f5f9;
+        }
+
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
+        .app-container { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+        
+        /* Top Selection Area */
+        .app-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
+        .panel { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        
+        h2 { margin-top: 0; font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+
+        select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 15px; font-size: 0.9rem; }
+        .course-list { display: grid; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
+        .course-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #f1f5f9; border-radius: 8px; background: #fff; font-size: 0.85rem; }
+        .btn-add { background: var(--primary); color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold; }
+
+        .selection-panel { position: sticky; top: 20px; border: 2px solid var(--primary); height: fit-content; }
+        .selected-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f0f7ff; border-radius: 6px; margin-bottom: 5px; font-size: 0.8rem; border: 1px solid #dbeafe; }
+
+        .btn-submit { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-submit:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+        /* Results Layout */
+        .results-container { display: none; grid-template-columns: 280px 1fr; gap: 20px; margin-top: 20px; }
+        
+        .nav-controls { grid-column: span 2; display: flex; justify-content: center; align-items: center; gap: 20px; background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .btn-nav { padding: 8px 16px; border: 1px solid var(--primary); background: white; color: var(--primary); border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-nav:hover { background: var(--primary); color: white; }
+
+        /* Legend Column */
+        .legend-list { display: flex; flex-direction: column; gap: 8px; }
+        .legend-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; border: 1px solid transparent; transition: 0.2s; }
+        .color-dot { width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; }
+
+        /* Table Column */
+        .table-wrapper { overflow-x: auto; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        table { width: 100%; border-collapse: separate; border-spacing: 4px; font-size: 0.75rem; min-width: 1000px; }
+        th, td { border: 1px solid #f1f5f9; text-align: center; height: 85px; vertical-align: top; border-radius: 4px; }
+        th { background: #f8fafc; color: var(--secondary); font-weight: 600; height: 35px; vertical-align: middle; border-radius: 4px; }
+        .day-col { font-weight: bold; background: #f8fafc; width: 110px; vertical-align: middle; font-size: 0.85rem; }
+        
+        /* The Session Cards */
+        .session-card { 
+            padding: 10px; 
+            border-radius: 8px; 
+            height: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            text-align: center;
+            border-left: 5px solid rgba(0,0,0,0.15);
+            box-sizing: border-box;
+            color: #1e293b;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .session-type { font-size: 0.65rem; text-transform: uppercase; font-weight: 900; opacity: 0.6; margin-bottom: 4px; letter-spacing: 0.5px; }
+        .session-name { font-weight: 800; font-size: 0.85rem; margin-bottom: 2px; }
+        .session-instr { font-size: 0.7rem; color: #475569; margin-top: 6px; line-height: 1.2; font-style: italic; }
+
+        @media (max-width: 1100px) { .results-container { grid-template-columns: 1fr; } .nav-controls { grid-column: span 1; } }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="app-grid">
+        <div class="panel">
+            <h2>🔍 Step 1: Select Courses</h2>
+            <select id="majorSelect" disabled><option>Fetching departments...</option></select>
+            <div id="courseList" class="course-list">
+                <p style="text-align:center; color:var(--secondary); margin-top:20px;">Select a department to view available courses.</p>
+            </div>
+        </div>
+
+        <div class="panel selection-panel">
+            <h2>📋 Selected (<span id="count">0</span>)</h2>
+            <div id="selectedContainer"></div>
+            <div style="margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+    <h2 style="margin-bottom: 10px;">⚙️ Preferences</h2>
+
+    <div id="prefList" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem;">
+        <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" value="Minimum Days/Gaps"> Minimum Days & Gaps
+        </label>
+        <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" value="Balanced"> Balanced Schedule
+        </label>
+        <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" value="No 8am/4pm Slots"> No 8am / 4pm Slots
+        </label>
+        <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" value="Free Days" onchange="toggleFreeDays(this)"> Specific Free Days
+        </label>
+        <div id="freeDaysContainer" style="display:none; padding-left: 20px; display: none;">
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;">
+                <label><input type="checkbox" name="free_day" value="Saturday"> Sat</label>
+                <label><input type="checkbox" name="free_day" value="Sunday"> Sun</label>
+                <label><input type="checkbox" name="free_day" value="Monday"> Mon</label>
+                <label><input type="checkbox" name="free_day" value="Tuesday"> Tue</label>
+                <label><input type="checkbox" name="free_day" value="Wednesday"> Wed</label>
+                <label><input type="checkbox" name="free_day" value="Thursday"> Thu</label>
+            </div>
+        </div>
+        <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" value="Lecturer" onchange="toggleLecturer(this)"> Prefer Lecturer
+        </label>
+        <div id="lecturerContainer" style="display:none; padding-left: 20px;">
+            <input type="text" id="lecturerInput" placeholder="Lecturer name..." 
+                style="width: 100%; padding: 6px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.8rem; margin-top: 6px;">
+        </div>
+    </div>
+</div>
+            <button id="optimizeBtn" class="btn-submit" disabled>Generate Schedule</button>
+        </div>
+    </div>
+
+    <div id="scheduleResults" class="results-container">
+        <div class="nav-controls">
+            <button class="btn-nav" onclick="changeOption(-1)">← Previous</button>
+            <span id="optionCounter" style="font-size: 1.1rem; font-weight: 800; color: var(--primary);">Option 1 of 1</span>
+            <button class="btn-nav" onclick="changeOption(1)">Next →</button>
+        </div>
+
+        <div class="panel">
+            <h2 style="margin-bottom: 15px;">📚 Subjects List</h2>
+            <div id="legendContainer" class="legend-list"></div>
+        </div>
+
+        <div class="table-wrapper">
+            <div id="tableContainer"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let globalData = {}, allOptions = [], currentIndex = 0, selected = new Set();
+    
+    // Vibrant Professional Colors
+    const palette = ["#dbeafe", "#fef3c7", "#dcfce7", "#fae8ff", "#ffedd5", "#e0e7ff", "#f1f5f9", "#fee2e2", "#ccfbf1", "#f5f3ff"];
+    let courseColorMap = {};
+
+    async function loadData() {
+        try {
+            const res = await fetch('/api/courses');
+            globalData = await res.json();
+            const sel = document.getElementById('majorSelect');
+            sel.innerHTML = '<option value="">Select Department</option>';
+            Object.keys(globalData).forEach(d => sel.innerHTML += `<option value="${d}">${d}</option>`);
+            sel.disabled = false;
+        } catch (e) { console.error("Load failed", e); }
+    }
+
+    document.getElementById('majorSelect').onchange = (e) => {
+        const list = document.getElementById('courseList');
+        list.innerHTML = '';
+        const dept = e.target.value;
+        if (dept) {
+            Object.keys(globalData[dept]).forEach(c => {
+                list.innerHTML += `
+                <div class="course-item">
+                    <span>${c}</span>
+                    <button class="btn-add" onclick="addCourse('${c}')">Add</button>
+                </div>`;
+            });
+        }
+    };
+
+    function addCourse(c) { 
+        selected.add(c); 
+        renderSelection(); 
+    }
+
+    function renderSelection() {
+        const container = document.getElementById('selectedContainer');
+        container.innerHTML = '';
+        selected.forEach(c => {
+            container.innerHTML += `
+            <div class="selected-item">
+                <span>${c}</span>
+                <button style="border:none;background:none;color:red;cursor:pointer;font-weight:bold" onclick="selected.delete('${c}');renderSelection()">×</button>
+            </div>`;
+        });
+        document.getElementById('count').innerText = selected.size;
+        document.getElementById('optimizeBtn').disabled = selected.size === 0;
+    }
+
+    document.getElementById('optimizeBtn').onclick = async () => {
+        const btn = document.getElementById('optimizeBtn');
+        btn.innerText = "Processing...";
+        btn.disabled = true;
+
+        const params = new URLSearchParams();
+        selected.forEach(c => params.append('courses', c));
+
+        try {
+            const res = await fetch(`/api/optimize/?${params.toString()}`);
+            const data = await res.json();
+            
+            if (data.schedule && data.schedule.length > 0) {
+                allOptions = data.schedule;
+                currentIndex = 0;
+
+                // 1. Create a persistent color map for every course found in the results
+                courseColorMap = {};
+                // Flatten all schedules to find all unique course strings
+                const uniqueResultCourses = [...new Set(allOptions.flat().map(s => s.Course))];
+                uniqueResultCourses.forEach((c, i) => {
+                    courseColorMap[c] = palette[i % palette.length];
+                });
+
+                renderAll();
+                document.getElementById('scheduleResults').style.display = 'grid';
+                document.getElementById('scheduleResults').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                alert("No conflict-free schedules found for this selection!");
+            }
+        } catch (e) {
+            alert("Connection error. Is the server running?");
+            console.error(e);
+        } finally {
+            btn.innerText = "Generate Schedule";
+            btn.disabled = false;
+        }
+    };
+
+    function changeOption(step) {
+        currentIndex = (currentIndex + step + allOptions.length) % allOptions.length;
+        renderAll();
+    }
+
+    function renderAll() {
+        const sessions = allOptions[currentIndex];
+        document.getElementById('optionCounter').innerText = `Option ${currentIndex + 1} of ${allOptions.length}`;
+        
+        // 1. Render Subject Legend
+        const legend = document.getElementById('legendContainer');
+        legend.innerHTML = '';
+        
+        // Find unique courses in the current displayed option
+        const currentOptionCourses = [...new Set(sessions.map(s => s.Course))];
+        
+        currentOptionCourses.forEach(courseName => {
+            const color = courseColorMap[courseName] || '#f1f5f9';
+            const group = sessions.find(s => s.Course === courseName).Group;
+            
+            legend.innerHTML += `
+                <div class="legend-item" style="background: ${color}; border-color: rgba(0,0,0,0.1);">
+                    <div class="color-dot" style="background: white; border: 2px solid rgba(0,0,0,0.2);"></div>
+                    <div style="flex-grow: 1;">
+                        <div class="session-name" style="font-size: 0.8rem;">${courseName.split('-')[0]}</div>
+                        <div style="font-size: 0.7rem; font-weight: 600; opacity: 0.7;">Group ${group}</div>
+                    </div>
+                </div>`;
+        });
+
+        // 2. Render Grid
+        const days = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+        const periods = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        
+        let html = `<table><thead><tr><th>Day / Period</th>`;
+        periods.forEach(p => html += `<th>P${p}</th>`);
+        html += `</tr></thead><tbody>`;
+
+        days.forEach(day => {
+            html += `<tr><td class="day-col">${day}</td>`;
+            for (let p = 1; p <= 12; p++) {
+                // Find a session starting at period P
+                const session = sessions.find(s => 
+                    s.Day.trim().toLowerCase() === day.toLowerCase() && 
+                    parseInt(s['start-time']) === p
+                );
+
+                if (session) {
+                    const color = courseColorMap[session.Course] || '#f1f5f9';
+                    const duration = (parseInt(session['end-time']) - parseInt(session['start-time'])) + 1;
+                    
+                    html += `<td colspan="${duration}">
+                        <div class="session-card" style="background-color: ${color};">
+                            <div class="session-type">${session.Type}</div>
+                            <div class="session-name">${session.Course.split('-')[0]}</div>
+                            <div class="session-instr">${session.Instructor || ''}</div>
+                        </div>
+                    </td>`;
+                    p += (duration - 1);
+                } else {
+                    html += `<td></td>`;
+                }
+            }
+            html += `</tr>`;
+        });
+        document.getElementById('tableContainer').innerHTML = html + `</tbody></table>`;
+    }
+
+
+    function toggleFreeDays(cb) {
+    document.getElementById('freeDaysContainer').style.display = cb.checked ? 'block' : 'none';
+}
+
+function toggleLecturer(cb) {
+    document.getElementById('lecturerContainer').style.display = cb.checked ? 'block' : 'none';
+}
+
+document.getElementById('optimizeBtn').onclick = async () => {
+    const btn = document.getElementById('optimizeBtn');
+    btn.innerText = "Processing...";
+    btn.disabled = true;
+
+    const params = new URLSearchParams();
+
+    // courses
+    selected.forEach(c => params.append('courses', c));
+
+    // preferences
+    document.querySelectorAll('#prefList input[type="checkbox"]:checked').forEach(cb => {
+        params.append('preferences', cb.value);
+    });
+
+    // free days
+    document.querySelectorAll('input[name="free_day"]:checked').forEach(cb => {
+        params.append('free_days', cb.value);
+    });
+
+    // lecturer
+    const lecturerInput = document.getElementById('lecturerInput').value.trim();
+    if (lecturerInput) {
+        params.append('lecturer', lecturerInput);
+    }
+
+    try {
+        const res = await fetch(`/api/optimize/?${params.toString()}`);
+        const data = await res.json();
+
+        if (data.schedule && data.schedule.length > 0) {
+            allOptions = data.schedule;
+            currentIndex = 0;
+
+            courseColorMap = {};
+            const uniqueResultCourses = [...new Set(allOptions.flat().map(s => s.Course))];
+            uniqueResultCourses.forEach((c, i) => {
+                courseColorMap[c] = palette[i % palette.length];
+            });
+
+            renderAll();
+            document.getElementById('scheduleResults').style.display = 'grid';
+            document.getElementById('scheduleResults').scrollIntoView({ behavior: 'smooth' });
+        } else {
+            alert("No conflict-free schedules found for this selection!");
+        }
+    } catch (e) {
+        alert("Connection error. Is the server running?");
+        console.error(e);
+    } finally {
+        btn.innerText = "Generate Schedule";
+        btn.disabled = false;
+    }
+};
+
+    loadData();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+
+# Environment variables
+.env
+
+# Generated JSON files
+schedule_maker/static/output.json
+
+# Flask session/instance
+instance/
