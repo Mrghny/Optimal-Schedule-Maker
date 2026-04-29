@@ -18,6 +18,14 @@ def extractSubjects(fileName):
         value = selected_option.get('value')
         department = selected_option.text.strip()
         
+
+    sem_dropdown = soup.find('tr', id='ctl00_ContentPlaceHolder1_TR_Period').find_all('td')[1].find('select')
+    selected_sem = sem_dropdown.find('option', selected=True) 
+    if selected_sem:
+        semester = selected_sem.text.strip()
+
+        
+
     # Getting Course Code & Name
     course = soup.find(id="ctl00_ContentPlaceHolder1_lbl_Title").get_text(strip=True).split(":")
     course = course[1].strip().split("- ")
@@ -71,7 +79,8 @@ def extractSubjects(fileName):
             "Group" : group,
             "Instructor": instructor,
             "Type": type,
-            "Department": department
+            "Department": department,
+            "Semester" : semester
         }
         return data
 

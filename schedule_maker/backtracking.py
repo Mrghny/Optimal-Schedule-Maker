@@ -8,6 +8,25 @@ def filterCourses(all_courses, course_names):
                 new_courses[name] = all_courses[department][name]
     return new_courses
 
+
+def excludeGroups(result, excGps):
+    new_courses = {}
+    if excGps:
+        excGps = json.loads(excGps)
+    else:
+        return result
+    for course in result:
+        excluded = excGps.get(course, [])  # [] if course not in excGps at all
+        
+        new_courses[course] = {}
+        for gp in result[course]:
+            if gp not in excluded:
+                new_courses[course][gp] = result[course][gp]
+        
+    return new_courses
+
+
+
 def conflictChecker(item1, item2):
     if item1["Day"] == item2["Day"]:
         if item1["start-time"] < item2["end-time"] and item2["start-time"] < item1["end-time"]:

@@ -10,64 +10,140 @@
             --secondary: #64748b;
             --bg: #f8fafc;
             --card: #ffffff;
-            /* Professional Palette */
-            --c1: #dbeafe; --c2: #fef3c7; --c3: #dcfce7; 
-            --c4: #fae8ff; --c5: #ffedd5; --c6: #e0e7ff; --c7: #f1f5f9;
         }
 
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
         .app-container { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
-        
-        /* Top Selection Area */
         .app-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
         .panel { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
-        
         h2 { margin-top: 0; font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; gap: 8px; }
 
-        select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 15px; font-size: 0.9rem; }
-        .course-list { display: grid; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
-        .course-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #f1f5f9; border-radius: 8px; background: #fff; font-size: 0.85rem; }
-        .btn-add { background: var(--primary); color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold; }
+        select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 12px; font-size: 0.9rem; box-sizing: border-box; }
 
+        /* ── Semester Tabs ── */
+        #semesterTabs {
+            display: none;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+        .sem-tab {
+            padding: 5px 14px;
+            border-radius: 20px;
+            border: 1.5px solid #e2e8f0;
+            background: white;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.15s;
+            color: var(--secondary);
+        }
+        .sem-tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* ── Course List ── */
+        .course-list { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
+
+        .course-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            background: #fff;
+            overflow: hidden;
+            transition: box-shadow 0.15s;
+        }
+        .course-item:hover { box-shadow: 0 2px 8px rgba(37,99,235,0.08); }
+
+        .course-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .course-header-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+        .course-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* toggle arrow for groups */
+        .toggle-groups {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.75rem;
+            color: var(--secondary);
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: 0.15s;
+            flex-shrink: 0;
+        }
+        .toggle-groups:hover { background: #f1f5f9; color: var(--primary); }
+
+        .btn-add { background: var(--primary); color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold; flex-shrink: 0; }
+        .btn-add:hover { background: #1d4ed8; }
+
+        /* ── Group Exclusion Drawer ── */
+        .group-drawer {
+            display: none;
+            padding: 8px 12px 10px 12px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+        }
+        .group-drawer.open { display: block; }
+        .group-drawer-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--secondary);
+            margin-bottom: 6px;
+        }
+        .group-checks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .group-check-label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.78rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+            transition: 0.12s;
+        }
+        .group-check-label:hover { border-color: var(--primary); color: var(--primary); }
+        .group-check-label input { cursor: pointer; }
+
+        /* ── Right Panel ── */
         .selection-panel { position: sticky; top: 20px; border: 2px solid var(--primary); height: fit-content; }
         .selected-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f0f7ff; border-radius: 6px; margin-bottom: 5px; font-size: 0.8rem; border: 1px solid #dbeafe; }
-
         .btn-submit { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn-submit:disabled { background: #cbd5e1; cursor: not-allowed; }
 
-        /* Results Layout */
+        /* ── Results ── */
         .results-container { display: none; grid-template-columns: 280px 1fr; gap: 20px; margin-top: 20px; }
-        
         .nav-controls { grid-column: span 2; display: flex; justify-content: center; align-items: center; gap: 20px; background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
         .btn-nav { padding: 8px 16px; border: 1px solid var(--primary); background: white; color: var(--primary); border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-nav:hover { background: var(--primary); color: white; }
 
-        /* Legend Column */
         .legend-list { display: flex; flex-direction: column; gap: 8px; }
-        .legend-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; border: 1px solid transparent; transition: 0.2s; }
+        .legend-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; border: 1px solid transparent; }
         .color-dot { width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; }
 
-        /* Table Column */
         .table-wrapper { overflow-x: auto; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
         table { width: 100%; border-collapse: separate; border-spacing: 4px; font-size: 0.75rem; min-width: 1000px; }
         th, td { border: 1px solid #f1f5f9; text-align: center; height: 85px; vertical-align: top; border-radius: 4px; }
-        th { background: #f8fafc; color: var(--secondary); font-weight: 600; height: 35px; vertical-align: middle; border-radius: 4px; }
+        th { background: #f8fafc; color: var(--secondary); font-weight: 600; height: 35px; vertical-align: middle; }
         .day-col { font-weight: bold; background: #f8fafc; width: 110px; vertical-align: middle; font-size: 0.85rem; }
-        
-        /* The Session Cards */
-        .session-card { 
-            padding: 10px; 
-            border-radius: 8px; 
-            height: 100%; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            text-align: center;
-            border-left: 5px solid rgba(0,0,0,0.15);
-            box-sizing: border-box;
-            color: #1e293b;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
+
+        .session-card { padding: 10px; border-radius: 8px; height: 100%; display: flex; flex-direction: column; justify-content: center; text-align: center; border-left: 5px solid rgba(0,0,0,0.15); box-sizing: border-box; color: #1e293b; }
         .session-type { font-size: 0.65rem; text-transform: uppercase; font-weight: 900; opacity: 0.6; margin-bottom: 4px; letter-spacing: 0.5px; }
         .session-name { font-weight: 800; font-size: 0.85rem; margin-bottom: 2px; }
         .session-instr { font-size: 0.7rem; color: #475569; margin-top: 6px; line-height: 1.2; font-style: italic; }
@@ -79,56 +155,77 @@
 
 <div class="app-container">
     <div class="app-grid">
+
+        <!-- LEFT: Course Browser -->
         <div class="panel">
             <h2>🔍 Step 1: Select Courses</h2>
-            <select id="majorSelect" disabled><option>Fetching departments...</option></select>
+
+            <!-- Department dropdown -->
+            <select id="majorSelect" disabled>
+                <option>Fetching departments...</option>
+            </select>
+
+            <!-- Semester tabs — shown after a department is chosen -->
+            <div id="semesterTabs"></div>
+
+            <!-- Course cards -->
             <div id="courseList" class="course-list">
-                <p style="text-align:center; color:var(--secondary); margin-top:20px;">Select a department to view available courses.</p>
+                <p style="text-align:center; color:var(--secondary); margin-top:20px;">
+                    Select a department to view available courses.
+                </p>
             </div>
         </div>
 
+        <!-- RIGHT: Selection + Preferences -->
         <div class="panel selection-panel">
             <h2>📋 Selected (<span id="count">0</span>)</h2>
             <div id="selectedContainer"></div>
-            <div style="margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
-    <h2 style="margin-bottom: 10px;">⚙️ Preferences</h2>
 
-    <div id="prefList" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem;">
-        <label style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" value="Minimum Days/Gaps"> Minimum Days & Gaps
-        </label>
-        <label style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" value="Balanced"> Balanced Schedule
-        </label>
-        <label style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" value="No 8am/4pm Slots"> No 8am / 4pm Slots
-        </label>
-        <label style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" value="Free Days" onchange="toggleFreeDays(this)"> Specific Free Days
-        </label>
-        <div id="freeDaysContainer" style="display:none; padding-left: 20px; display: none;">
-            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;">
-                <label><input type="checkbox" name="free_day" value="Saturday"> Sat</label>
-                <label><input type="checkbox" name="free_day" value="Sunday"> Sun</label>
-                <label><input type="checkbox" name="free_day" value="Monday"> Mon</label>
-                <label><input type="checkbox" name="free_day" value="Tuesday"> Tue</label>
-                <label><input type="checkbox" name="free_day" value="Wednesday"> Wed</label>
-                <label><input type="checkbox" name="free_day" value="Thursday"> Thu</label>
+            <div style="margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+                <h2 style="margin-bottom: 10px;">⚙️ Preferences</h2>
+                <div id="prefList" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem;">
+                    <label style="display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" value="Minimum Days/Gaps"> Minimum Days & Gaps
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" value="Balanced"> Balanced Schedule
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" value="No 8am/4pm Slots"> No 8am / 4pm Slots
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" value="Free Days" onchange="toggleFreeDays(this)"> Specific Free Days
+                    </label>
+                    <div id="freeDaysContainer" style="display:none; padding-left: 20px;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;">
+                            <label><input type="checkbox" name="free_day" value="Saturday"> Sat</label>
+                            <label><input type="checkbox" name="free_day" value="Sunday"> Sun</label>
+                            <label><input type="checkbox" name="free_day" value="Monday"> Mon</label>
+                            <label><input type="checkbox" name="free_day" value="Tuesday"> Tue</label>
+                            <label><input type="checkbox" name="free_day" value="Wednesday"> Wed</label>
+                            <label><input type="checkbox" name="free_day" value="Thursday"> Thu</label>
+                        </div>
+                    </div>
+                    <label style="display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" value="Lecturer" onchange="toggleLecturer(this)"> Prefer Lecturer
+                    </label>
+                    <div id="lecturerContainer" style="display:none; padding-left: 20px;">
+                        <input type="text" id="lecturerInput" placeholder="Lecturer name..."
+                            style="width: 100%; padding: 6px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.8rem; margin-top: 6px; box-sizing:border-box;">
+                    </div>
+                    <label style="display:flex; align-items:center; gap:8px;">
+                        Schedules to generate
+                        <input type="number" id="numSchedules" value="5" min="1" max="50"
+                            style="width: 60px; padding: 4px 6px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.85rem;">
+                    </label>
+                </div>
             </div>
-        </div>
-        <label style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" value="Lecturer" onchange="toggleLecturer(this)"> Prefer Lecturer
-        </label>
-        <div id="lecturerContainer" style="display:none; padding-left: 20px;">
-            <input type="text" id="lecturerInput" placeholder="Lecturer name..." 
-                style="width: 100%; padding: 6px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.8rem; margin-top: 6px;">
-        </div>
-    </div>
-</div>
+
             <button id="optimizeBtn" class="btn-submit" disabled>Generate Schedule</button>
         </div>
     </div>
 
+    <!-- RESULTS -->
     <div id="scheduleResults" class="results-container">
         <div class="nav-controls">
             <button class="btn-nav" onclick="changeOption(-1)">← Previous</button>
@@ -148,76 +245,262 @@
 </div>
 
 <script>
-    let globalData = {}, allOptions = [], currentIndex = 0, selected = new Set();
-    
-    // Vibrant Professional Colors
-    const palette = ["#dbeafe", "#fef3c7", "#dcfce7", "#fae8ff", "#ffedd5", "#e0e7ff", "#f1f5f9", "#fee2e2", "#ccfbf1", "#f5f3ff"];
+    // ─── State ────────────────────────────────────────────────────────────────
+    let globalData = {};          // { dept: { course: [sessions] } }
+    let allOptions = [];
+    let currentIndex = 0;
+    let selected = new Set();     // selected course names
+    let excludedGroups = {};      // { courseName: Set<groupName> }
+    let activeDept = null;
+    let activeSemester = null;
+
+    const palette = ["#dbeafe","#fef3c7","#dcfce7","#fae8ff","#ffedd5","#e0e7ff","#f1f5f9","#fee2e2","#ccfbf1","#f5f3ff"];
     let courseColorMap = {};
 
+    // ─── Load departments ─────────────────────────────────────────────────────
     async function loadData() {
         try {
             const res = await fetch('/api/courses');
             globalData = await res.json();
             const sel = document.getElementById('majorSelect');
             sel.innerHTML = '<option value="">Select Department</option>';
-            Object.keys(globalData).forEach(d => sel.innerHTML += `<option value="${d}">${d}</option>`);
+            Object.keys(globalData).forEach(d => {
+                sel.innerHTML += `<option value="${d}">${d}</option>`;
+            });
             sel.disabled = false;
         } catch (e) { console.error("Load failed", e); }
     }
 
+    // ─── Department selected → build semester tabs ────────────────────────────
     document.getElementById('majorSelect').onchange = (e) => {
-        const list = document.getElementById('courseList');
-        list.innerHTML = '';
-        const dept = e.target.value;
-        if (dept) {
-            Object.keys(globalData[dept]).forEach(c => {
-                list.innerHTML += `
-                <div class="course-item">
-                    <span>${c}</span>
-                    <button class="btn-add" onclick="addCourse('${c}')">Add</button>
-                </div>`;
-            });
+        activeDept = e.target.value;
+        activeSemester = null;
+
+        const tabsEl = document.getElementById('semesterTabs');
+        const courseListEl = document.getElementById('courseList');
+
+        if (!activeDept) {
+            tabsEl.style.display = 'none';
+            tabsEl.innerHTML = '';
+            courseListEl.innerHTML = '<p style="text-align:center;color:var(--secondary);margin-top:20px;">Select a department to view available courses.</p>';
+            return;
         }
+
+        // Collect unique semesters from all courses in this department
+        // Data shape: { CourseName: { GroupName: [sessions] } }
+        const semesterSet = new Set();
+        Object.values(globalData[activeDept]).forEach(groupMap => {
+            Object.values(groupMap).forEach(sessions => {
+                sessions.forEach(s => {
+                    if (s.Semester) semesterSet.add(String(s.Semester));
+                });
+            });
+        });
+
+        const semesters = [...semesterSet].sort((a, b) => Number(a) - Number(b));
+
+        // Render tabs
+        tabsEl.innerHTML = semesters.map(sem =>
+            `<button class="sem-tab" data-sem="${sem}" onclick="selectSemester('${sem}')">
+                Semester ${sem}
+            </button>`
+        ).join('');
+        tabsEl.style.display = 'flex';
+
+        // Auto-select first semester
+        if (semesters.length > 0) selectSemester(semesters[0]);
+        else courseListEl.innerHTML = '<p style="text-align:center;color:var(--secondary);">No semesters found.</p>';
     };
 
-    function addCourse(c) { 
-        selected.add(c); 
-        renderSelection(); 
+    // ─── Semester tab clicked → render courses ────────────────────────────────
+    function selectSemester(sem) {
+        activeSemester = sem;
+
+        // Highlight active tab
+        document.querySelectorAll('.sem-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.sem === sem);
+        });
+
+        const courseListEl = document.getElementById('courseList');
+        courseListEl.innerHTML = '';
+
+        if (!activeDept) return;
+
+        // Data shape: { CourseName: { GroupName: [sessions] } }
+        const deptCourses = globalData[activeDept];
+        const coursesInSem = Object.keys(deptCourses).filter(courseName =>
+            Object.values(deptCourses[courseName]).some(sessions =>
+                sessions.some(s => String(s.Semester) === sem)
+            )
+        );
+
+        if (coursesInSem.length === 0) {
+            courseListEl.innerHTML = '<p style="text-align:center;color:var(--secondary);">No courses in this semester.</p>';
+            return;
+        }
+
+        // Use index-based IDs so Arabic/special chars never break HTML attrs or onclick
+        coursesInSem.forEach((courseName, idx) => {
+            const groupMap = deptCourses[courseName];
+            const groups = Object.keys(groupMap).filter(g =>
+                groupMap[g].some(s => String(s.Semester) === sem)
+            ).sort();
+
+            // Store course name in a lookup table keyed by safe index
+            window._courseIndex = window._courseIndex || {};
+            window._courseIndex[idx] = courseName;
+
+            const drawerId = `drawer-${idx}`;
+
+            const groupChecks = groups.map(g => `
+                <label class="group-check-label">
+                    <input type="checkbox"
+                           data-idx="${idx}"
+                           data-group="${g}"
+                           onchange="toggleGroupExclusion(${idx}, '${g}', this.checked)"
+                    > Group ${g}
+                </label>
+            `).join('');
+
+            courseListEl.innerHTML += `
+                <div class="course-item">
+                    <div class="course-header">
+                        <div class="course-header-left">
+                            ${groups.length > 0 ? `
+                                <button class="toggle-groups" title="Show/hide groups"
+                                    onclick="toggleDrawer('${drawerId}', this)">▶ Groups</button>
+                            ` : ''}
+                            <span class="course-name" title="${courseName}">${courseName}</span>
+                        </div>
+                        <button class="btn-add" onclick="addCourseByIdx(${idx})">Add</button>
+                    </div>
+                    ${groups.length > 0 ? `
+                        <div class="group-drawer" id="${drawerId}">
+                            <div class="group-drawer-label">Exclude groups (uncheck to exclude):</div>
+                            <div class="group-checks">${groupChecks}</div>
+                        </div>
+                    ` : ''}
+                </div>`;
+
+            // Init exclusion set for this course
+            if (!excludedGroups[courseName]) excludedGroups[courseName] = new Set();
+        });
+
+        // All group checkboxes checked by default (= include all)
+        document.querySelectorAll('.group-drawer input[type="checkbox"]').forEach(cb => {
+            cb.checked = true;
+        });
+    }
+
+    // ─── Toggle group drawer ──────────────────────────────────────────────────
+    function toggleDrawer(drawerId, btn) {
+        const drawer = document.getElementById(drawerId);
+        const isOpen = drawer.classList.toggle('open');
+        btn.textContent = (isOpen ? '▼' : '▶') + ' Groups';
+    }
+
+    // ─── Group exclusion logic ────────────────────────────────────────────────
+    // checked = include, unchecked = exclude
+    function toggleGroupExclusion(idx, group, checked) {
+        const courseName = (window._courseIndex || {})[idx];
+        if (!courseName) return;
+        if (!excludedGroups[courseName]) excludedGroups[courseName] = new Set();
+        if (checked) {
+            excludedGroups[courseName].delete(group);
+        } else {
+            excludedGroups[courseName].add(group);
+        }
+    }
+
+    // ─── Add course to selection ──────────────────────────────────────────────
+    function addCourseByIdx(idx) {
+        const courseName = (window._courseIndex || {})[idx];
+        if (!courseName) return;
+        selected.add(courseName);
+        renderSelection();
+    }
+
+    // Keep addCourse for any legacy calls
+    function addCourse(courseName) {
+        selected.add(courseName);
+        renderSelection();
     }
 
     function renderSelection() {
         const container = document.getElementById('selectedContainer');
         container.innerHTML = '';
+        let si = 0;
+        window._selectedIndex = {};
         selected.forEach(c => {
+            window._selectedIndex[si] = c;
+            const excl = excludedGroups[c] ? [...excludedGroups[c]] : [];
+            const exclNote = excl.length > 0
+                ? `<span style="font-size:0.7rem;color:#ef4444;margin-left:4px;">(excl. ${excl.map(g=>'Grp '+g).join(', ')})</span>`
+                : '';
             container.innerHTML += `
-            <div class="selected-item">
-                <span>${c}</span>
-                <button style="border:none;background:none;color:red;cursor:pointer;font-weight:bold" onclick="selected.delete('${c}');renderSelection()">×</button>
-            </div>`;
+                <div class="selected-item">
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c}</div>
+                        ${exclNote}
+                    </div>
+                    <button style="border:none;background:none;color:red;cursor:pointer;font-weight:bold;flex-shrink:0;"
+                        onclick="removeSelected(${si})">×</button>
+                </div>`;
+            si++;
         });
         document.getElementById('count').innerText = selected.size;
         document.getElementById('optimizeBtn').disabled = selected.size === 0;
     }
 
+    // ─── Optimize button ──────────────────────────────────────────────────────
     document.getElementById('optimizeBtn').onclick = async () => {
         const btn = document.getElementById('optimizeBtn');
         btn.innerText = "Processing...";
         btn.disabled = true;
 
         const params = new URLSearchParams();
+
+        // Courses
         selected.forEach(c => params.append('courses', c));
+
+        // Excluded groups — send as one JSON object { course: [groups], ... }
+        const exclusionsObj = {};
+        Object.entries(excludedGroups).forEach(([course, groups]) => {
+            if (groups.size > 0) {
+                exclusionsObj[course] = [...groups];
+            }
+        });
+        if (Object.keys(exclusionsObj).length > 0) {
+            params.append('excluded_groups', JSON.stringify(exclusionsObj));
+        }
+
+        // Preferences
+        document.querySelectorAll('#prefList input[type="checkbox"]:checked').forEach(cb => {
+            params.append('preferences', cb.value);
+        });
+
+        // Free days
+        document.querySelectorAll('input[name="free_day"]:checked').forEach(cb => {
+            params.append('free_days', cb.value);
+        });
+
+        // Lecturer
+        const lecturerInput = document.getElementById('lecturerInput').value.trim();
+        if (lecturerInput) params.append('lecturer', lecturerInput);
+
+        // Number of schedules
+        const numSchedules = document.getElementById('numSchedules').value;
+        if (numSchedules) params.append('num_schedules', numSchedules);
 
         try {
             const res = await fetch(`/api/optimize/?${params.toString()}`);
             const data = await res.json();
-            
+
             if (data.schedule && data.schedule.length > 0) {
                 allOptions = data.schedule;
                 currentIndex = 0;
 
-                // 1. Create a persistent color map for every course found in the results
                 courseColorMap = {};
-                // Flatten all schedules to find all unique course strings
                 const uniqueResultCourses = [...new Set(allOptions.flat().map(s => s.Course))];
                 uniqueResultCourses.forEach((c, i) => {
                     courseColorMap[c] = palette[i % palette.length];
@@ -238,6 +521,7 @@
         }
     };
 
+    // ─── Schedule rendering ───────────────────────────────────────────────────
     function changeOption(step) {
         currentIndex = (currentIndex + step + allOptions.length) % allOptions.length;
         renderAll();
@@ -246,18 +530,14 @@
     function renderAll() {
         const sessions = allOptions[currentIndex];
         document.getElementById('optionCounter').innerText = `Option ${currentIndex + 1} of ${allOptions.length}`;
-        
-        // 1. Render Subject Legend
+
+        // Legend
         const legend = document.getElementById('legendContainer');
         legend.innerHTML = '';
-        
-        // Find unique courses in the current displayed option
         const currentOptionCourses = [...new Set(sessions.map(s => s.Course))];
-        
         currentOptionCourses.forEach(courseName => {
             const color = courseColorMap[courseName] || '#f1f5f9';
             const group = sessions.find(s => s.Course === courseName).Group;
-            
             legend.innerHTML += `
                 <div class="legend-item" style="background: ${color}; border-color: rgba(0,0,0,0.1);">
                     <div class="color-dot" style="background: white; border: 2px solid rgba(0,0,0,0.2);"></div>
@@ -268,27 +548,25 @@
                 </div>`;
         });
 
-        // 2. Render Grid
-        const days = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
-        const periods = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-        
+        // Timetable
+        const days = ['Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
+        const periods = [1,2,3,4,5,6,7,8,9,10,11,12];
+
         let html = `<table><thead><tr><th>Day / Period</th>`;
         periods.forEach(p => html += `<th>P${p}</th>`);
         html += `</tr></thead><tbody>`;
 
         days.forEach(day => {
             html += `<tr><td class="day-col">${day}</td>`;
-            for (let p = 1; p <= 12; p++) {
-                // Find a session starting at period P
-                const session = sessions.find(s => 
-                    s.Day.trim().toLowerCase() === day.toLowerCase() && 
+            let p = 1;
+            while (p <= 12) {
+                const session = sessions.find(s =>
+                    s.Day.trim().toLowerCase() === day.toLowerCase() &&
                     parseInt(s['start-time']) === p
                 );
-
                 if (session) {
                     const color = courseColorMap[session.Course] || '#f1f5f9';
                     const duration = (parseInt(session['end-time']) - parseInt(session['start-time'])) + 1;
-                    
                     html += `<td colspan="${duration}">
                         <div class="session-card" style="background-color: ${color};">
                             <div class="session-type">${session.Type}</div>
@@ -296,80 +574,33 @@
                             <div class="session-instr">${session.Instructor || ''}</div>
                         </div>
                     </td>`;
-                    p += (duration - 1);
+                    p += duration;
                 } else {
                     html += `<td></td>`;
+                    p++;
                 }
             }
             html += `</tr>`;
         });
+
         document.getElementById('tableContainer').innerHTML = html + `</tbody></table>`;
     }
 
-
+    // ─── Preference toggles ───────────────────────────────────────────────────
     function toggleFreeDays(cb) {
-    document.getElementById('freeDaysContainer').style.display = cb.checked ? 'block' : 'none';
-}
-
-function toggleLecturer(cb) {
-    document.getElementById('lecturerContainer').style.display = cb.checked ? 'block' : 'none';
-}
-
-document.getElementById('optimizeBtn').onclick = async () => {
-    const btn = document.getElementById('optimizeBtn');
-    btn.innerText = "Processing...";
-    btn.disabled = true;
-
-    const params = new URLSearchParams();
-
-    // courses
-    selected.forEach(c => params.append('courses', c));
-
-    // preferences
-    document.querySelectorAll('#prefList input[type="checkbox"]:checked').forEach(cb => {
-        params.append('preferences', cb.value);
-    });
-
-    // free days
-    document.querySelectorAll('input[name="free_day"]:checked').forEach(cb => {
-        params.append('free_days', cb.value);
-    });
-
-    // lecturer
-    const lecturerInput = document.getElementById('lecturerInput').value.trim();
-    if (lecturerInput) {
-        params.append('lecturer', lecturerInput);
+        document.getElementById('freeDaysContainer').style.display = cb.checked ? 'block' : 'none';
+    }
+    function toggleLecturer(cb) {
+        document.getElementById('lecturerContainer').style.display = cb.checked ? 'block' : 'none';
     }
 
-    try {
-        const res = await fetch(`/api/optimize/?${params.toString()}`);
-        const data = await res.json();
-
-        if (data.schedule && data.schedule.length > 0) {
-            allOptions = data.schedule;
-            currentIndex = 0;
-
-            courseColorMap = {};
-            const uniqueResultCourses = [...new Set(allOptions.flat().map(s => s.Course))];
-            uniqueResultCourses.forEach((c, i) => {
-                courseColorMap[c] = palette[i % palette.length];
-            });
-
-            renderAll();
-            document.getElementById('scheduleResults').style.display = 'grid';
-            document.getElementById('scheduleResults').scrollIntoView({ behavior: 'smooth' });
-        } else {
-            alert("No conflict-free schedules found for this selection!");
-        }
-    } catch (e) {
-        alert("Connection error. Is the server running?");
-        console.error(e);
-    } finally {
-        btn.innerText = "Generate Schedule";
-        btn.disabled = false;
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+    function removeSelected(idx) {
+        const courseName = (window._selectedIndex || {})[idx];
+        if (courseName) { selected.delete(courseName); renderSelection(); }
     }
-};
 
+    // ─── Boot ─────────────────────────────────────────────────────────────────
     loadData();
 </script>
 </body>
