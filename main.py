@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template, jsonify
 import json, os
 from schedule_maker.scraper import getOutput
-from schedule_maker.backtracking import placeCourse, filterCourses, score_schedules, excludeGroups
+from schedule_maker.backtracking import filterCourses, score_schedules, excludeGroups, placeCourse, sortBySmallestGroups
 
 
 app = Flask(__name__)
@@ -30,12 +30,15 @@ def get_schedules():
 
     organized_courses = filterCourses(data, selected_courses)
     organized_courses = excludeGroups(organized_courses,exc)
+    subject_ordering = sortBySmallestGroups(organized_courses)
 
     if not organized_courses:
         return jsonify({"error": "No matching courses found"}), 404
 
+
+    
     result = []
-    placeCourse(0, [], organized_courses, selected_courses, result)
+    placeCourse(0, [], organized_courses, subject_ordering, result)
     
 
     if not result:
