@@ -1,626 +1,1022 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AASTMT Schedule Optimizer</title>
-    <style>
-        :root {
-            --primary: #2563eb;
-            --secondary: #64748b;
-            --bg: #f8fafc;
-            --card: #ffffff;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AASTMT Schedule — Timetable Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAFAFA;
+    --paper-raised:#FFFFFF;
+    --ink:#14171F;
+    --ink-soft:#5B6270;
+    --ink-faint:#9AA0AC;
+    --line:#E2E4E8;
+    --line-strong:#CBCFD6;
+    --accent:#2E4374;
+    --accent-soft:#EAEEF6;
+    --accent-hover:#233457;
+    --warn:#B3491F;
+    --warn-soft:#FBEEE7;
+    --radius:10px;
+    --c1:#6C87B7; --c2:#7C9473; --c3:#9673A0; --c4:#B98B5E;
+    --c5:#5FA39A; --c6:#C08497; --c7:#8E8A46; --c8:#8993A4;
+    --c9:#4C7A8B; --c10:#A8763F;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'Inter', system-ui, sans-serif; font-size:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  .display{ font-family:'Space Grotesk', sans-serif; }
 
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
-        .app-container { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
-        .app-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
-        .panel { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
-        h2 { margin-top: 0; font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+  /* ── Header ─────────────────────────────────────────────── */
+  header{
+    max-width:1180px; margin:0 auto; padding:38px 24px 22px;
+    display:flex; align-items:flex-end; justify-content:space-between; gap:20px;
+    border-bottom:1px solid var(--line);
+    animation:panelIn 0.4s ease both;
+  }
+  @keyframes panelIn{
+    from{ opacity:0; transform:translateY(10px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--accent); margin:0 0 8px; font-weight:600;
+  }
+  h1.title{ font-family:'Space Grotesk', sans-serif; font-size:30px; font-weight:600; margin:0; letter-spacing:-0.01em; }
+  .header-meta{ font-size:12.5px; color:var(--ink-soft); text-align:right; line-height:1.6; }
+  .header-meta b{ color:var(--ink); font-weight:600; }
 
-        select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 12px; font-size: 0.9rem; box-sizing: border-box; }
+  .app{ max-width:1180px; margin:0 auto; padding:28px 24px 80px; }
 
-        /* ── Semester Tabs ── */
-        #semesterTabs {
-            display: none;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 14px;
-        }
-        .sem-tab {
-            padding: 5px 14px;
-            border-radius: 20px;
-            border: 1.5px solid #e2e8f0;
-            background: white;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.15s;
-            color: var(--secondary);
-        }
-        .sem-tab.active {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: white;
-        }
+  /* ── Section labels ─────────────────────────────────────── */
+  .section-label{
+    display:flex; align-items:center; gap:10px; margin-bottom:16px;
+  }
+  .section-num{
+    font-family:'JetBrains Mono', monospace; font-size:11px; font-weight:600;
+    color:var(--accent); background:var(--accent-soft); width:22px; height:22px;
+    border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .section-label h2{ font-family:'Space Grotesk', sans-serif; font-size:16px; font-weight:600; margin:0; }
 
-        /* ── Course List ── */
-        .course-list { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
+  /* ── Layout grid ────────────────────────────────────────── */
+  .builder-grid{ display:grid; grid-template-columns:1fr 340px; gap:24px; align-items:start; }
+  @media (max-width:900px){ .builder-grid{ grid-template-columns:1fr; } }
 
-        .course-item {
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            background: #fff;
-            overflow: hidden;
-            transition: box-shadow 0.15s;
-        }
-        .course-item:hover { box-shadow: 0 2px 8px rgba(37,99,235,0.08); }
+  .panel{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:var(--radius);
+    padding:22px;
+  }
+  .builder-grid > .panel{ animation:panelIn 0.4s ease both; }
+  .builder-grid > .panel:nth-child(1){ animation-delay:0.06s; }
+  .builder-grid > .panel:nth-child(2){ animation-delay:0.12s; }
 
-        .course-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 12px;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        .course-header-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-        .course-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* ── Department / semester controls ────────────────────── */
+  select#majorSelect{
+    width:100%; padding:11px 12px; border-radius:8px; border:1px solid var(--line-strong);
+    font-size:13.5px; font-family:'Inter',sans-serif; background:var(--paper-raised);
+    color:var(--ink); margin-bottom:14px; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235B6270'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 14px center;
+  }
+  select#majorSelect:disabled{ color:var(--ink-faint); cursor:not-allowed; }
 
-        /* toggle arrow for groups */
-        .toggle-groups {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 0.75rem;
-            color: var(--secondary);
-            padding: 2px 4px;
-            border-radius: 4px;
-            transition: 0.15s;
-            flex-shrink: 0;
-        }
-        .toggle-groups:hover { background: #f1f5f9; color: var(--primary); }
+  #semesterTabs{ display:none; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+  .sem-tab{
+    padding:6px 13px; border-radius:20px; border:1px solid var(--line-strong);
+    background:var(--paper-raised); font-family:'JetBrains Mono', monospace; font-size:11.5px;
+    font-weight:500; cursor:pointer; color:var(--ink-soft); transition:0.12s;
+  }
+  .sem-tab:hover{ border-color:var(--accent); color:var(--accent); }
+  .sem-tab.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
 
-        .btn-add { background: var(--primary); color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold; flex-shrink: 0; }
-        .btn-add:hover { background: #1d4ed8; }
+  /* ── Course list ────────────────────────────────────────── */
+  .course-list{ display:flex; flex-direction:column; gap:8px; max-height:480px; overflow-y:auto; padding-right:2px; }
+  .course-list::-webkit-scrollbar{ width:6px; }
+  .course-list::-webkit-scrollbar-thumb{ background:var(--line-strong); border-radius:3px; }
 
-        /* ── Group Exclusion Drawer ── */
-        .group-drawer {
-            display: none;
-            padding: 8px 12px 10px 12px;
-            background: #f8fafc;
-            border-top: 1px solid #e2e8f0;
-        }
-        .group-drawer.open { display: block; }
-        .group-drawer-label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--secondary);
-            margin-bottom: 6px;
-        }
-        .group-checks {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-        .group-check-label {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 0.78rem;
-            background: white;
-            border: 1px solid #e2e8f0;
-            padding: 3px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            user-select: none;
-            transition: 0.12s;
-        }
-        .group-check-label:hover { border-color: var(--primary); color: var(--primary); }
-        .group-check-label input { cursor: pointer; }
+  .course-item{ border:1px solid var(--line); border-radius:8px; transition:border-color 0.12s, box-shadow 0.12s, transform 0.12s; }
+  .course-item:hover{ border-color:var(--line-strong); box-shadow:0 2px 8px rgba(20,23,31,0.05); }
 
-        /* ── Right Panel ── */
-        .selection-panel { position: sticky; top: 20px; border: 2px solid var(--primary); height: fit-content; }
-        .selected-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f0f7ff; border-radius: 6px; margin-bottom: 5px; font-size: 0.8rem; border: 1px solid #dbeafe; }
-        .btn-submit { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-submit:disabled { background: #cbd5e1; cursor: not-allowed; }
+  .course-header{ display:flex; align-items:center; justify-content:space-between; padding:11px 12px; gap:10px; }
+  .course-header-left{ display:flex; align-items:center; gap:8px; min-width:0; flex:1; }
+  .course-name{ font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-        /* ── Results ── */
-        .results-container { display: none; grid-template-columns: 280px 1fr; gap: 20px; margin-top: 20px; }
-        .nav-controls { grid-column: span 2; display: flex; justify-content: center; align-items: center; gap: 20px; background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
-        .btn-nav { padding: 8px 16px; border: 1px solid var(--primary); background: white; color: var(--primary); border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-nav:hover { background: var(--primary); color: white; }
+  .toggle-groups{
+    background:none; border:none; cursor:pointer; font-family:'JetBrains Mono', monospace;
+    font-size:10.5px; color:var(--ink-faint); padding:3px 6px; border-radius:4px; flex-shrink:0;
+    transition:background 0.12s, color 0.12s, transform 0.15s;
+  }
+  .toggle-groups:hover{ background:var(--accent-soft); color:var(--accent); }
+  .toggle-groups:active{ transform:scale(0.92); }
 
-        .legend-list { display: flex; flex-direction: column; gap: 8px; }
-        .legend-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; border: 1px solid transparent; }
-        .color-dot { width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; }
+  .btn-add{
+    background:var(--ink); color:#fff; border:none; padding:6px 13px; border-radius:6px;
+    cursor:pointer; font-size:11.5px; font-weight:600; flex-shrink:0; font-family:'Inter',sans-serif;
+    transition:background 0.12s, transform 0.1s;
+  }
+  .btn-add:hover{ background:var(--accent); }
+  .btn-add:active{ transform:scale(0.94); }
+  .btn-add.added{ background:var(--accent-soft); color:var(--accent); }
 
-        .table-wrapper { overflow-x: auto; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
-        table { width: 100%; border-collapse: separate; border-spacing: 4px; font-size: 0.75rem; min-width: 1000px; }
-        th, td { border: 1px solid #f1f5f9; text-align: center; height: 85px; vertical-align: top; border-radius: 4px; }
-        th { background: #f8fafc; color: var(--secondary); font-weight: 600; height: 35px; vertical-align: middle; }
-        .day-col { font-weight: bold; background: #f8fafc; width: 110px; vertical-align: middle; font-size: 0.85rem; }
+  /* ── Group exclusion modal ──────────────────────────────────────────── */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(20,23,31,0.42); z-index:100;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+    animation:overlayIn 0.14s ease;
+  }
+  .modal-overlay[hidden]{ display:none; }
+  @keyframes overlayIn{ from{ opacity:0; } to{ opacity:1; } }
 
-        .session-card { padding: 10px; border-radius: 8px; height: 100%; display: flex; flex-direction: column; justify-content: center; text-align: center; border-left: 5px solid rgba(0,0,0,0.15); box-sizing: border-box; color: #1e293b; }
-        .session-type { font-size: 0.65rem; text-transform: uppercase; font-weight: 900; opacity: 0.6; margin-bottom: 4px; letter-spacing: 0.5px; }
-        .session-name { font-weight: 800; font-size: 0.85rem; margin-bottom: 2px; }
-        .session-instr { font-size: 0.7rem; color: #475569; margin-top: 6px; line-height: 1.2; font-style: italic; }
+  .modal-box{
+    background:var(--paper-raised); border-radius:12px; width:100%; max-width:380px;
+    max-height:74vh; display:flex; flex-direction:column; overflow:hidden;
+    box-shadow:0 12px 40px rgba(20,23,31,0.18); animation:modalIn 0.16s ease;
+  }
+  @keyframes modalIn{ from{ opacity:0; transform:translateY(8px) scale(0.98); } to{ opacity:1; transform:translateY(0) scale(1); } }
 
-        @media (max-width: 1100px) { .results-container { grid-template-columns: 1fr; } .nav-controls { grid-column: span 1; } }
-    </style>
+  .modal-header{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:16px 18px; border-bottom:1px solid var(--line); flex-shrink:0;
+  }
+  .modal-course-name{ font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:600; }
+  .modal-close{
+    border:none; background:none; color:var(--ink-faint); cursor:pointer; font-size:20px;
+    line-height:1; padding:2px 6px; border-radius:5px; transition:color 0.12s, background 0.12s;
+  }
+  .modal-close:hover{ color:var(--ink); background:var(--paper); }
+
+  .modal-groups{
+    display:flex; flex-wrap:wrap; gap:8px; padding:16px 18px; overflow-y:auto;
+  }
+  .modal-groups::-webkit-scrollbar{ width:6px; }
+  .modal-groups::-webkit-scrollbar-thumb{ background:var(--line-strong); border-radius:3px; }
+
+  .modal-groups.lecturer-sections{ flex-direction:column; flex-wrap:nowrap; gap:16px; }
+  .lecturer-group-label{
+    font-family:'JetBrains Mono', monospace; font-size:10px; text-transform:uppercase;
+    letter-spacing:0.08em; color:var(--ink-faint); font-weight:600; margin-bottom:8px;
+  }
+  .lecturer-group-checks{ display:flex; flex-wrap:wrap; gap:8px; }
+  .group-check-label{
+    display:flex; align-items:center; gap:5px; font-family:'JetBrains Mono', monospace; font-size:11.5px;
+    background:var(--paper-raised); border:1px solid var(--line-strong); padding:4px 9px 4px 7px;
+    border-radius:5px; cursor:pointer; user-select:none; transition:border-color 0.12s, color 0.12s, transform 0.1s;
+  }
+  .group-check-label:hover{ border-color:var(--accent); color:var(--accent); transform:translateY(-1px); }
+  .group-check-label input{ cursor:pointer; accent-color:var(--accent); }
+
+  /* ── Right column: ticket stub selection panel ─────────── */
+  .selection-panel{ position:sticky; top:20px; padding:0; overflow:hidden; }
+  .ticket-head{
+    padding:18px 20px 14px; border-bottom:1px dashed var(--line-strong);
+    display:flex; align-items:baseline; justify-content:space-between;
+  }
+  .ticket-head h2{ font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:600; margin:0; }
+  .ticket-count{ font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--accent); font-weight:600; }
+
+  #selectedContainer{ padding:14px 20px 4px; display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; }
+  .empty-note{ font-size:12.5px; color:var(--ink-faint); text-align:center; padding:14px 0; }
+
+  .selected-item{
+    display:flex; align-items:center; gap:10px; padding:9px 10px; background:var(--paper);
+    border:1px solid var(--line); border-radius:7px; position:relative;
+    animation:itemIn 0.2s ease both;
+  }
+  @keyframes itemIn{ from{ opacity:0; transform:translateX(-6px); } to{ opacity:1; transform:translateX(0); } }
+  .stub-tab{ width:4px; align-self:stretch; border-radius:2px; flex-shrink:0; }
+  .selected-item-body{ flex:1; min-width:0; }
+  .selected-item-name{ font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .selected-item-excl{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--warn); margin-top:2px; }
+  .remove-btn{ border:none; background:none; color:var(--ink-faint); cursor:pointer; font-size:15px; line-height:1; padding:2px 4px; flex-shrink:0; transition:color 0.12s, transform 0.1s; border-radius:4px; }
+  .remove-btn:hover{ color:var(--warn); background:var(--warn-soft); }
+  .remove-btn:active{ transform:scale(0.88); }
+
+  .prefs-section{ padding:16px 20px 20px; border-top:1px dashed var(--line-strong); margin-top:8px; }
+  .prefs-section h2{ font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:600; margin:0 0 12px; }
+
+  .pref-row{ display:flex; align-items:center; gap:9px; font-size:12.8px; padding:7px 0; cursor:pointer; }
+  .pref-row input[type=checkbox]{ accent-color:var(--accent); cursor:pointer; width:15px; height:15px; }
+
+  .sub-block{ display:none; padding:8px 0 4px 24px; }
+  .sub-block.open{ display:block; }
+  .day-pills{ display:flex; flex-wrap:wrap; gap:5px; }
+  .day-pill{ font-family:'JetBrains Mono',monospace; font-size:10.5px; }
+  .day-pill label{
+    display:block; padding:5px 9px; border:1px solid var(--line-strong); border-radius:14px;
+    cursor:pointer; color:var(--ink-soft); transition:background 0.12s, border-color 0.12s, color 0.12s, transform 0.1s;
+  }
+  .day-pill label:hover{ border-color:var(--accent); color:var(--accent); transform:translateY(-1px); }
+  .day-pill label:active{ transform:scale(0.95); }
+  .day-pill input{ display:none; }
+  .day-pill input:checked + label{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+
+  .effort-row{ padding:12px 0 4px; }
+  .effort-label{ display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-faint); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em; }
+  input[type=range]#effortSlider{ width:100%; accent-color:var(--accent); }
+
+  .num-row{ display:flex; align-items:center; justify-content:space-between; padding:10px 0 2px; font-size:12.8px; }
+  input#numSchedules{
+    width:56px; padding:6px 8px; border:1px solid var(--line-strong); border-radius:6px;
+    font-family:'JetBrains Mono',monospace; font-size:12.5px; text-align:center;
+  }
+
+  .btn-submit{
+    width:100%; padding:13px; background:var(--ink); color:#fff; border:none; border-radius:8px;
+    font-weight:600; font-size:13.5px; cursor:pointer; margin-top:16px; font-family:'Inter',sans-serif;
+    transition:0.15s; letter-spacing:0.01em; perspective:400px;
+  }
+  .btn-submit:hover:not(:disabled){ background:var(--accent); }
+  .btn-submit:active:not(:disabled){ transform:scale(0.985); }
+  .btn-submit:disabled{ background:var(--ink); opacity:0.9; cursor:wait; }
+
+  .btn-label{ display:inline-block; }
+  @keyframes flapOut{ from{ transform:rotateX(0deg); opacity:1; } to{ transform:rotateX(90deg); opacity:0; } }
+  @keyframes flapIn{ from{ transform:rotateX(-90deg); opacity:0; } to{ transform:rotateX(0deg); opacity:1; } }
+
+  .progress-track{
+    height:3px; width:100%; background:var(--line); border-radius:2px; margin-top:8px; overflow:hidden;
+  }
+  .progress-track[hidden]{ display:none; }
+  .progress-fill{
+    height:100%; width:40%; background:var(--accent); border-radius:2px;
+    animation:sweep 1.1s ease-in-out infinite;
+  }
+  @keyframes sweep{
+    0%{ transform:translateX(-100%); }
+    100%{ transform:translateX(350%); }
+  }
+
+  /* ── Results ────────────────────────────────────────────── */
+  #scheduleResults{ display:none; margin-top:36px; }
+  .results-head{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:12px;
+  }
+  .nav-controls{ display:flex; align-items:center; gap:16px; }
+  .btn-nav{
+    padding:8px 15px; border:1px solid var(--line-strong); background:var(--paper-raised); color:var(--ink);
+    border-radius:7px; cursor:pointer; font-size:12.5px; font-weight:600; font-family:'Inter',sans-serif;
+    transition:border-color 0.12s, color 0.12s, transform 0.1s;
+  }
+  .btn-nav:hover{ border-color:var(--accent); color:var(--accent); }
+  .btn-nav:active{ transform:scale(0.95); }
+  #optionCounter{ font-family:'JetBrains Mono', monospace; font-size:12.5px; font-weight:600; color:var(--ink-soft); min-width:110px; text-align:center; }
+
+  .results-body{ display:grid; grid-template-columns:220px 1fr; gap:20px; align-items:start; }
+  @media (max-width:900px){ .results-body{ grid-template-columns:1fr; } }
+
+  .legend-panel h3{ font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-faint); margin:0 0 12px; }
+  .legend-list{ display:flex; flex-direction:column; gap:7px; }
+  .legend-item{ display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:7px; background:var(--paper-raised); border:1px solid var(--line); animation:rowReveal 0.2s ease both; }
+  .legend-tab{ width:4px; align-self:stretch; border-radius:2px; flex-shrink:0; }
+  .legend-name{ font-size:12px; font-weight:500; }
+  .legend-group{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-soft); margin-top:1px; }
+
+  .board-wrap{ background:var(--paper-raised); border:1px solid var(--line); border-radius:var(--radius); padding:20px; overflow-x:auto; }
+  @keyframes rowReveal{
+    from{ opacity:0; transform:translateY(-4px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .day-label{ display:inline-block; animation:rowReveal 0.22s ease both; }
+  .session-card.reveal{ animation:rowReveal 0.22s ease both; }
+  table.timetable{ border-collapse:separate; border-spacing:0; width:100%; min-width:760px; }
+  table.timetable th{
+    font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--ink-faint); font-weight:600; padding:0 4px 10px; text-align:center; border-bottom:1px solid var(--line-strong);
+  }
+  table.timetable th.period-head{ text-align:left; }
+  .period-num{ font-weight:700; color:var(--ink-soft); font-size:11px; }
+  .period-time{ font-size:9px; color:var(--ink-faint); margin-top:2px; letter-spacing:0.02em; text-transform:none; }
+  .day-col{
+    font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:600; color:var(--ink-soft);
+    padding:10px 10px 10px 0; vertical-align:top; white-space:nowrap; border-right:1px solid var(--line);
+  }
+  table.timetable td{ padding:3px; vertical-align:top; }
+  .cell-empty{ height:64px; border-bottom:1px dashed var(--line); }
+
+  .session-card{
+    height:100%; min-height:64px; border-radius:7px; padding:8px 9px; border-left:3px solid transparent;
+    display:flex; flex-direction:column; justify-content:center; gap:2px;
+  }
+  .session-type{ font-family:'JetBrains Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; opacity:0.75; }
+  .session-name{ font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:600; }
+  .session-time{ font-size:9.5px; color:var(--ink-soft); margin-top:1px; }
+  .session-instr{ font-size:10px; color:var(--ink-soft); margin-top:2px; line-height:1.25; }
+
+  .no-results{ text-align:center; padding:30px; color:var(--ink-faint); font-size:13px; }
+
+  /* ── Phone ──────────────────────────────────────────────── */
+  @media (max-width:640px){
+    header{ flex-direction:column; align-items:flex-start; gap:10px; padding:24px 16px 18px; }
+    h1.title{ font-size:24px; }
+    .header-meta{ text-align:left; }
+
+    .app{ padding:18px 16px 60px; }
+    .panel{ padding:16px; }
+
+    .builder-grid{ gap:16px; }
+    .course-list{ max-height:360px; }
+
+    .selection-panel{ position:static; }
+
+    /* bigger tap targets on touch */
+    .btn-add{ padding:9px 15px; font-size:12.5px; }
+    .toggle-groups{ padding:7px 9px; font-size:11px; }
+    .group-check-label{ padding:7px 11px 7px 9px; font-size:12.5px; }
+    .day-pill label{ padding:8px 12px; }
+    .remove-btn{ padding:6px 8px; font-size:17px; }
+    .sem-tab{ padding:8px 14px; }
+
+    .btn-submit{ padding:15px; font-size:14px; }
+
+    .results-head{ align-items:flex-start; }
+    .nav-controls{ width:100%; justify-content:space-between; }
+    .board-wrap{ padding:14px; -webkit-overflow-scrolling:touch; }
+  }
+</style>
 </head>
 <body>
 
-<div class="app-container">
-    <div class="app-grid">
+<header>
+  <div>
+    <p class="eyebrow">AASTMT · Course Scheduling</p>
+    <h1 class="title">Schedule Optimizer</h1>
+  </div>
+  <div class="header-meta">
+    Select your courses and preferences below.
+  </div>
+</header>
 
-        <!-- LEFT: Course Browser -->
-        <div class="panel">
-            <h2>🔍 Step 1: Select Courses</h2>
+<div class="app">
 
-            <!-- Department dropdown -->
-            <select id="majorSelect" disabled>
-                <option>Fetching departments...</option>
-            </select>
+  <div class="builder-grid">
 
-            <!-- Semester tabs — shown after a department is chosen -->
-            <div id="semesterTabs"></div>
+    <!-- LEFT: Course browser -->
+    <div class="panel">
+      <div class="section-label">
+        <span class="section-num">1</span>
+        <h2>Choose courses</h2>
+      </div>
 
-            <!-- Course cards -->
-            <div id="courseList" class="course-list">
-                <p style="text-align:center; color:var(--secondary); margin-top:20px;">
-                    Select a department to view available courses.
-                </p>
-            </div>
-        </div>
+      <select id="majorSelect" disabled>
+        <option>Fetching departments…</option>
+      </select>
 
-        <!-- RIGHT: Selection + Preferences -->
-        <div class="panel selection-panel">
-            <h2>📋 Selected (<span id="count">0</span>)</h2>
-            <div id="selectedContainer"></div>
+      <div id="semesterTabs"></div>
 
-            <div style="margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
-                <h2 style="margin-bottom: 10px;">⚙️ Preferences</h2>
-                <div id="prefList" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem;">
-                    <label style="display:flex; align-items:center; gap:8px;">
-                        <input type="checkbox" value="Minimum Days/Gaps"> Minimum Days & Gaps
-                    </label>
-                    <label style="display:flex; align-items:center; gap:8px;">
-                        <input type="checkbox" value="Balanced"> Balanced Schedule
-                    </label>
-                    <label style="display:flex; align-items:center; gap:8px;">
-                        <input type="checkbox" value="No 8am/4pm Slots"> No 8am / 4pm Slots
-                    </label>
-                    <label style="display:flex; align-items:center; gap:8px;">
-                        <input type="checkbox" value="Free Days" onchange="toggleFreeDays(this)"> Specific Free Days
-                    </label>
-                    <div id="freeDaysContainer" style="display:none; padding-left: 20px;">
-                        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;">
-                            <label><input type="checkbox" name="free_day" value="Saturday"> Sat</label>
-                            <label><input type="checkbox" name="free_day" value="Sunday"> Sun</label>
-                            <label><input type="checkbox" name="free_day" value="Monday"> Mon</label>
-                            <label><input type="checkbox" name="free_day" value="Tuesday"> Tue</label>
-                            <label><input type="checkbox" name="free_day" value="Wednesday"> Wed</label>
-                            <label><input type="checkbox" name="free_day" value="Thursday"> Thu</label>
-                        </div>
-                    </div>
-                    <label style="display:flex; align-items:center; gap:8px;">
-                        <input type="checkbox" value="Lecturer" onchange="toggleLecturer(this)"> Prefer Lecturer
-                    </label>
-                    <div id="lecturerContainer" style="display:none; padding-left: 20px;">
-                        <input type="text" id="lecturerInput" placeholder="Lecturer name..."
-                            style="width: 100%; padding: 6px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.8rem; margin-top: 6px; box-sizing:border-box;">
-                    </div>
-                    <label style="display:flex; align-items:center; gap:8px;">
-                        Schedules to generate
-                        <input type="number" id="numSchedules" value="5" min="1" max="50"
-                            style="width: 60px; padding: 4px 6px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.85rem;">
-                    </label>
-                </div>
-            </div>
-
-            <button id="optimizeBtn" class="btn-submit" disabled>Generate Schedule</button>
-        </div>
+      <div id="courseList" class="course-list">
+        <p class="empty-note">Select a department to view available courses.</p>
+      </div>
     </div>
 
-    <!-- RESULTS -->
-    <div id="scheduleResults" class="results-container">
-        <div class="nav-controls">
-            <button class="btn-nav" onclick="changeOption(-1)">← Previous</button>
-            <span id="optionCounter" style="font-size: 1.1rem; font-weight: 800; color: var(--primary);">Option 1 of 1</span>
-            <button class="btn-nav" onclick="changeOption(1)">Next →</button>
+    <!-- RIGHT: Ticket-stub selection + preferences -->
+    <div class="panel selection-panel">
+      <div class="ticket-head">
+        <h2>Selected</h2>
+        <span class="ticket-count"><span id="count">0</span> courses</span>
+      </div>
+
+      <div id="selectedContainer">
+        <p class="empty-note">Nothing selected yet.</p>
+      </div>
+
+      <div class="prefs-section">
+        <h2>Preferences</h2>
+
+        <label class="pref-row">
+          <input type="checkbox" value="Minimum Days/Gaps"> Minimum days &amp; gaps
+        </label>
+        <label class="pref-row">
+          <input type="checkbox" value="Balanced"> Balanced schedule
+        </label>
+        <label class="pref-row">
+          <input type="checkbox" value="No 8am/4pm Slots"> No early / late slots
+        </label>
+        <label class="pref-row">
+          <input type="checkbox" value="Free Days" onchange="toggleSub('freeDaysContainer', this)"> Specific free days
+        </label>
+        <div id="freeDaysContainer" class="sub-block">
+          <div class="day-pills" id="freeDayPills"></div>
         </div>
 
-        <div class="panel">
-            <h2 style="margin-bottom: 15px;">📚 Subjects List</h2>
-            <div id="legendContainer" class="legend-list"></div>
+        <div class="effort-row">
+          <div class="effort-label"><span>Fast</span><span>Thorough</span></div>
+          <input type="range" id="effortSlider" min="0" max="2" step="1" value="1">
         </div>
 
-        <div class="table-wrapper">
-            <div id="tableContainer"></div>
+        <div class="num-row">
+          Schedules to generate
+          <input type="number" id="numSchedules" value="5" min="1" max="50">
         </div>
+
+        <button id="optimizeBtn" class="btn-submit" disabled><span id="btnLabel" class="btn-label">Generate schedule</span></button>
+        <div class="progress-track" id="progressTrack" hidden><div class="progress-fill"></div></div>
+      </div>
     </div>
+
+  </div>
+
+  <!-- RESULTS -->
+  <div id="scheduleResults">
+    <div class="results-head">
+      <div class="section-label" style="margin-bottom:0;">
+        <span class="section-num">2</span>
+        <h2>Your schedules</h2>
+      </div>
+      <div class="nav-controls">
+        <button class="btn-nav" onclick="changeOption(-1)">← Previous</button>
+        <span id="optionCounter" class="mono">Option 1 of 1</span>
+        <button class="btn-nav" onclick="changeOption(1)">Next →</button>
+      </div>
+    </div>
+
+    <div class="results-body">
+      <div class="legend-panel">
+        <h3>Courses in this option</h3>
+        <div id="legendContainer" class="legend-list"></div>
+      </div>
+
+      <div class="board-wrap">
+        <div id="tableContainer"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Group exclusion modal -->
+<div id="groupModal" class="modal-overlay" hidden onclick="if(event.target===this) closeGroupModal();">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span id="modalCourseName" class="modal-course-name"></span>
+      <button class="modal-close" onclick="closeGroupModal()">×</button>
+    </div>
+    <div class="modal-groups" id="modalGroupChecks"></div>
+  </div>
+</div>
+
+<!-- Lecturer preference modal -->
+<div id="lecturerModal" class="modal-overlay" hidden onclick="if(event.target===this) closeLecturerModal();">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span id="lecturerModalCourseName" class="modal-course-name"></span>
+      <button class="modal-close" onclick="closeLecturerModal()">×</button>
+    </div>
+    <div class="modal-groups lecturer-sections" id="lecturerModalChecks"></div>
+  </div>
 </div>
 
 <script>
-    // ─── State ────────────────────────────────────────────────────────────────
-    let globalData = {};          // { dept: { course: [sessions] } }
-    let allOptions = [];
-    let currentIndex = 0;
-    let selected = new Set();     // selected course names
-    let excludedGroups = {};      // { courseName: Set<groupName> }
-    let activeDept = null;
-    let activeSemester = null;
+  // ─── State ──────────────────────────────────────────────────────────────
+  let globalData = {};
+  let allCoursesFlat = {};   // courseName -> groupMap, flattened across all departments
+  let allOptions = [];
+  let currentIndex = 0;
+  let selected = new Set();
+  let excludedGroups = {};
+  let activeDept = null;
+  let activeSemester = null;
 
-    const palette = ["#dbeafe","#fef3c7","#dcfce7","#fae8ff","#ffedd5","#e0e7ff","#f1f5f9","#fee2e2","#ccfbf1","#f5f3ff"];
-    let courseColorMap = {};
+  const palette = ["--c1","--c2","--c3","--c4","--c5","--c6","--c7","--c8","--c9","--c10"];
+  let courseColorMap = {};
+  const rootStyles = getComputedStyle(document.documentElement);
+  const colorOf = (v) => rootStyles.getPropertyValue(v).trim();
 
-    // ─── Load departments ─────────────────────────────────────────────────────
-    async function loadData() {
-        try {
-            const res = await fetch('/api/courses');
-            globalData = await res.json();
-            const sel = document.getElementById('majorSelect');
-            sel.innerHTML = '<option value="">Select Department</option>';
-            Object.keys(globalData).forEach(d => {
-                sel.innerHTML += `<option value="${d}">${d}</option>`;
-            });
-            sel.disabled = false;
-        } catch (e) { console.error("Load failed", e); }
+  const DAYS = ['Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
+  const PERIOD_MIN = 1, PERIOD_MAX = 17;
+
+  // ─── Period → clock time mapping ───────────────────────────────────────
+  // Pattern: pairs of periods span 105min starting 8:30 (52 + 53 split),
+  // followed by a 15min break, then the next pair. Repeats indefinitely.
+  function buildPeriodTimeTable(maxPeriod){
+    const table = {};
+    let blockStart = 8 * 60 + 30; // 8:30 in minutes since midnight
+    let period = 1;
+    while(period <= maxPeriod){
+      const p1Start = blockStart, p1End = p1Start + 52;
+      table[period] = { start: p1Start, end: p1End };
+      period++;
+      if(period > maxPeriod) break;
+      const p2Start = p1End, p2End = p2Start + 53; // pair totals 105min
+      table[period] = { start: p2Start, end: p2End };
+      period++;
+      blockStart = p2End + 15; // 15min break before next pair
     }
+    return table;
+  }
+  function fmtTime(mins){
+    const h = Math.floor(mins / 60), m = mins % 60;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    let h12 = h % 12; if(h12 === 0) h12 = 12;
+    return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+  }
+  const PERIOD_TIMES = buildPeriodTimeTable(24);
 
-    // ─── Department selected → build semester tabs ────────────────────────────
-    document.getElementById('majorSelect').onchange = (e) => {
-        activeDept = e.target.value;
-        activeSemester = null;
+  // ─── Free day pills (build once) ───────────────────────────────────────
+  document.getElementById('freeDayPills').innerHTML = DAYS.map((d,i) => `
+    <div class="day-pill">
+      <input type="checkbox" name="freeDay" value="${d}" id="fd-${i}">
+      <label for="fd-${i}">${d.slice(0,3)}</label>
+    </div>`).join('');
 
-        const tabsEl = document.getElementById('semesterTabs');
-        const courseListEl = document.getElementById('courseList');
+  function toggleSub(id, cb){
+    document.getElementById(id).classList.toggle('open', cb.checked);
+  }
 
-        if (!activeDept) {
-            tabsEl.style.display = 'none';
-            tabsEl.innerHTML = '';
-            courseListEl.innerHTML = '<p style="text-align:center;color:var(--secondary);margin-top:20px;">Select a department to view available courses.</p>';
-            return;
-        }
+  // ─── Lecturer preference chips ──────────────────────────────────────────
+  // ─── Lecturer selection (per-course, via modal) ─────────────────────────
+  // All instructors are included by default; unchecking one excludes any
+  // group taught by them (mirrors group exclusion — this is a hard filter,
+  // not a scored preference, so it needs no backend scoring changes).
+  let excludedLecturers = {};   // { courseName: Set(instructorName) } — names NOT wanted
+  let lecturerModalIdx = null;
 
-        // Collect unique semesters from all courses in this department
-        // Data shape: { CourseName: { GroupName: [sessions] } }
-        const semesterSet = new Set();
-        // Object.values(globalData[activeDept]).forEach(groupMap => {
+  function openLecturerModal(idx){
+    const courseName = (window._courseIndex || {})[idx];
+    const groupMap = allCoursesFlat[courseName];
+    if(!courseName || !groupMap) return;
+    lecturerModalIdx = idx;
 
-        //     console.log(groupMap)
-        //     const grpMap = groupMap.sessions
-        //     console.log(grpMap)
-        //     Object.values(grpMap).forEach(sessions => {
-        //         sessions.forEach(s => {
-        //             if (s.Semester) semesterSet.add(String(s.Semester));
-        //         });
-        //     });
-        // });
-        Object.values(globalData[activeDept]).forEach(groupMap => {
-            // groupMap = { "C": {sessions:[...], mask:...}, "D": {...} }
-            Object.values(groupMap).forEach(groupData => {
-                groupData.sessions.forEach(s => {
-                    if (s.Semester) semesterSet.add(String(s.Semester));
-                });
-            });
-        });
+    const excludedGrp = excludedGroups[courseName] || new Set();
+    const lectureNames = new Set();
+    const otherNames = new Set();   // Section, Lab, and anything not "Lecture"
 
-        const semesters = [...semesterSet].sort((a, b) => Number(a) - Number(b));
+    Object.entries(groupMap).forEach(([g, groupData]) => {
+      if(excludedGrp.has(g)) return;
+      groupData.sessions.forEach(s => {
+        if(!s.Instructor || !s.Instructor.trim()) return;
+        const name = s.Instructor.trim();
+        if((s.Type || '').trim().toLowerCase() === 'lecture') lectureNames.add(name);
+        else otherNames.add(name);
+      });
+    });
 
-        // Render tabs
-        tabsEl.innerHTML = semesters.map(sem =>
-            `<button class="sem-tab" data-sem="${sem}" onclick="selectSemester('${sem}')">
-                Semester ${sem}
-            </button>`
-        ).join('');
-        tabsEl.style.display = 'flex';
+    const excluded = excludedLecturers[courseName] || new Set();
+    const cName = courseName.replace(/'/g,"\\'");
 
-        // Auto-select first semester
-        if (semesters.length > 0) selectSemester(semesters[0]);
-        else courseListEl.innerHTML = '<p style="text-align:center;color:var(--secondary);">No semesters found.</p>';
+    const buildGroup = (label, names) => {
+      const sorted = [...names].sort();
+      if(sorted.length === 0) return '';
+      return `
+        <div class="lecturer-group">
+          <div class="lecturer-group-label">${label}</div>
+          <div class="lecturer-group-checks">
+            ${sorted.map((name, i) => `
+              <label class="group-check-label">
+                <input type="checkbox" id="lecopt-${label}-${i}"
+                       onchange="toggleLecturerExclusion('${cName}', '${name.replace(/'/g,"\\'")}', this.checked)"
+                       ${excluded.has(name) ? '' : 'checked'}>
+                ${name}
+              </label>`).join('')}
+          </div>
+        </div>`;
     };
 
-    // ─── Semester tab clicked → render courses ────────────────────────────────
-    function selectSemester(sem) {
-        activeSemester = sem;
+    document.getElementById('lecturerModalCourseName').textContent = courseName;
 
-        // Highlight active tab
-        document.querySelectorAll('.sem-tab').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.sem === sem);
+    const html = buildGroup('Lecture', lectureNames) + buildGroup('Section / Lab', otherNames);
+    document.getElementById('lecturerModalChecks').innerHTML = html.trim()
+      ? html
+      : `<p class="empty-note">No lecturer info available for the remaining groups.</p>`;
+
+    document.getElementById('lecturerModal').hidden = false;
+  }
+
+  function closeLecturerModal(){
+    document.getElementById('lecturerModal').hidden = true;
+    lecturerModalIdx = null;
+  }
+
+  function toggleLecturerExclusion(courseName, name, checked){
+    if(!excludedLecturers[courseName]) excludedLecturers[courseName] = new Set();
+    if(checked) excludedLecturers[courseName].delete(name);   // checked = included
+    else excludedLecturers[courseName].add(name);              // unchecked = excluded
+  }
+
+  // ─── Load departments ───────────────────────────────────────────────────
+  async function loadData(){
+    try{
+      const res = await fetch('/api/courses');
+      globalData = await res.json();
+
+      allCoursesFlat = {};
+      Object.values(globalData).forEach(deptCourses => {
+        Object.entries(deptCourses).forEach(([courseName, groupMap]) => {
+          allCoursesFlat[courseName] = groupMap;
         });
+      });
+      const sel = document.getElementById('majorSelect');
+      sel.innerHTML = '<option value="">Select department</option>';
+      Object.keys(globalData).forEach(d => {
+        sel.innerHTML += `<option value="${d}">${d}</option>`;
+      });
+      sel.disabled = false;
+    }catch(e){ console.error("Load failed", e); }
+  }
 
-        const courseListEl = document.getElementById('courseList');
-        courseListEl.innerHTML = '';
+  document.getElementById('majorSelect').onchange = (e) => {
+    activeDept = e.target.value;
+    activeSemester = null;
 
-        if (!activeDept) return;
+    const tabsEl = document.getElementById('semesterTabs');
+    const courseListEl = document.getElementById('courseList');
 
-        // Data shape: { CourseName: { GroupName: [sessions] } }
-        const deptCourses = globalData[activeDept];
-        // const coursesInSem = Object.keys(deptCourses).filter(courseName =>
-        //     Object.values(deptCourses[courseName]).some(sessions =>
-        //         sessions.some(s => String(s.Semester) === sem)
-        //     )
-        // );
+    if(!activeDept){
+      tabsEl.style.display = 'none';
+      tabsEl.innerHTML = '';
+      courseListEl.innerHTML = '<p class="empty-note">Select a department to view available courses.</p>';
+      return;
+    }
 
-        // NEW
-        const coursesInSem = Object.keys(deptCourses).filter(courseName =>
-            Object.values(deptCourses[courseName]).some(groupData =>
-                groupData.sessions.some(s => String(s.Semester) === sem)
-            )
-        );
+    // Data shape: { CourseName: { GroupName: { sessions:[...], _mask:... } } }
+    const semesterSet = new Set();
+    Object.values(globalData[activeDept]).forEach(groupMap => {
+      Object.values(groupMap).forEach(groupData => {
+        groupData.sessions.forEach(s => {
+          if(s.Semester) semesterSet.add(String(s.Semester));
+        });
+      });
+    });
 
-        if (coursesInSem.length === 0) {
-            courseListEl.innerHTML = '<p style="text-align:center;color:var(--secondary);">No courses in this semester.</p>';
-            return;
+    const semesters = [...semesterSet].sort((a,b) => Number(a) - Number(b));
+
+    tabsEl.innerHTML = semesters.map(sem =>
+      `<button class="sem-tab" data-sem="${sem}" onclick="selectSemester('${sem}')">Semester ${sem}</button>`
+    ).join('');
+    tabsEl.style.display = 'flex';
+
+    if(semesters.length > 0) selectSemester(semesters[0]);
+    else courseListEl.innerHTML = '<p class="empty-note">No semesters found.</p>';
+  };
+
+  function selectSemester(sem){
+    activeSemester = sem;
+    document.querySelectorAll('.sem-tab').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.sem === sem);
+    });
+
+    const courseListEl = document.getElementById('courseList');
+    courseListEl.innerHTML = '';
+    if(!activeDept) return;
+
+    const deptCourses = globalData[activeDept];
+    const coursesInSem = Object.keys(deptCourses).filter(courseName =>
+      Object.values(deptCourses[courseName]).some(groupData =>
+        groupData.sessions.some(s => String(s.Semester) === sem)
+      )
+    );
+
+    if(coursesInSem.length === 0){
+      courseListEl.innerHTML = '<p class="empty-note">No courses in this semester.</p>';
+      return;
+    }
+
+    window._courseIndex = {};
+
+    coursesInSem.forEach((courseName, idx) => {
+      const groupMap = deptCourses[courseName];
+      const groups = Object.keys(groupMap).filter(g =>
+        groupMap[g].sessions.some(s => String(s.Semester) === sem)
+      ).sort();
+
+      window._courseIndex[idx] = courseName;
+      window._groupsByIdx = window._groupsByIdx || {};
+      window._groupsByIdx[idx] = groups;
+      const isAdded = selected.has(courseName);
+
+      const lecturerNames = new Set();
+      groups.forEach(g => {
+        groupMap[g].sessions.forEach(s => {
+          if(String(s.Semester) === sem && s.Instructor && s.Instructor.trim()) lecturerNames.add(s.Instructor.trim());
+        });
+      });
+
+      courseListEl.innerHTML += `
+        <div class="course-item">
+          <div class="course-header">
+            <div class="course-header-left">
+              ${groups.length > 0 ? `<button class="toggle-groups" onclick="openGroupModal(${idx})">${groups.length} grp</button>` : ''}
+              ${lecturerNames.size > 0 ? `<button class="toggle-groups" onclick="openLecturerModal(${idx})">${lecturerNames.size} lec</button>` : ''}
+              <span class="course-name" title="${courseName}">${courseName}</span>
+            </div>
+            <button class="btn-add ${isAdded ? 'added' : ''}" id="add-btn-${idx}" onclick="addCourseByIdx(${idx})">${isAdded ? 'Added' : 'Add'}</button>
+          </div>
+        </div>`;
+
+      if(!excludedGroups[courseName]) excludedGroups[courseName] = new Set();
+    });
+  }
+
+  function toggleGroupExclusion(idx, group, checked){
+    const courseName = (window._courseIndex || {})[idx];
+    if(!courseName) return;
+    if(!excludedGroups[courseName]) excludedGroups[courseName] = new Set();
+    if(checked) excludedGroups[courseName].delete(group);
+    else excludedGroups[courseName].add(group);
+  }
+
+  // ─── Group modal ────────────────────────────────────────────────────────
+  let modalIdx = null;
+
+  function openGroupModal(idx){
+    const courseName = (window._courseIndex || {})[idx];
+    const groups = (window._groupsByIdx || {})[idx] || [];
+    if(!courseName) return;
+    modalIdx = idx;
+
+    document.getElementById('modalCourseName').textContent = courseName;
+    const excluded = excludedGroups[courseName] || new Set();
+
+    document.getElementById('modalGroupChecks').innerHTML = groups.map(g => `
+      <label class="group-check-label">
+        <input type="checkbox" data-idx="${idx}" data-group="${g}"
+               onchange="toggleGroupExclusion(${idx}, '${g}', this.checked)"
+               ${excluded.has(g) ? '' : 'checked'}>
+        Group ${g}
+      </label>
+    `).join('');
+
+    document.getElementById('groupModal').hidden = false;
+  }
+
+  function closeGroupModal(){
+    document.getElementById('groupModal').hidden = true;
+    modalIdx = null;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape'){
+      closeGroupModal();
+      closeLecturerModal();
+    }
+  });
+
+  function addCourseByIdx(idx){
+    const courseName = (window._courseIndex || {})[idx];
+    if(!courseName) return;
+    const btn = document.getElementById(`add-btn-${idx}`);
+    if(selected.has(courseName)){
+      selected.delete(courseName);
+      if(btn){ btn.textContent = 'Add'; btn.classList.remove('added'); }
+    } else {
+      selected.add(courseName);
+      if(btn){ btn.textContent = 'Added'; btn.classList.add('added'); }
+    }
+    renderSelection();
+  }
+
+  function renderSelection(){
+    const container = document.getElementById('selectedContainer');
+    if(selected.size === 0){
+      container.innerHTML = '<p class="empty-note">Nothing selected yet.</p>';
+    } else {
+      container.innerHTML = '';
+      let si = 0;
+      window._selectedIndex = {};
+      selected.forEach(c => {
+        window._selectedIndex[si] = c;
+        const excl = excludedGroups[c] ? [...excludedGroups[c]] : [];
+        const tabColor = colorOf(palette[si % palette.length]);
+        const exclNote = excl.length > 0
+          ? `<div class="selected-item-excl">excl. ${excl.map(g=>'grp '+g).join(', ')}</div>`
+          : '';
+        container.innerHTML += `
+          <div class="selected-item">
+            <div class="stub-tab" style="background:${tabColor};"></div>
+            <div class="selected-item-body">
+              <div class="selected-item-name" title="${c}">${c}</div>
+              ${exclNote}
+            </div>
+            <button class="remove-btn" onclick="removeSelected(${si})">×</button>
+          </div>`;
+        si++;
+      });
+    }
+    document.getElementById('count').innerText = selected.size;
+    document.getElementById('optimizeBtn').disabled = selected.size === 0;
+  }
+
+  function removeSelected(idx){
+    const courseName = (window._selectedIndex || {})[idx];
+    if(courseName){
+      selected.delete(courseName);
+      renderSelection();
+      // resync add-buttons in course list
+      Object.entries(window._courseIndex || {}).forEach(([i, name]) => {
+        if(name === courseName){
+          const btn = document.getElementById(`add-btn-${i}`);
+          if(btn){ btn.textContent = 'Add'; btn.classList.remove('added'); }
         }
+      });
+    }
+  }
 
-        // Use index-based IDs so Arabic/special chars never break HTML attrs or onclick
-        coursesInSem.forEach((courseName, idx) => {
-            const groupMap = deptCourses[courseName];
-            const groups = Object.keys(groupMap).filter(g =>
-                groupMap[g].sessions.some(s => String(s.Semester) === sem)
-            ).sort();
+  // ─── Split-flap loading label ───────────────────────────────────────────
+  function setLabel(text){
+    const el = document.getElementById('btnLabel');
+    el.style.animation = 'flapOut 0.14s ease forwards';
+    setTimeout(() => {
+      el.textContent = text;
+      el.style.animation = 'flapIn 0.14s ease forwards';
+    }, 140);
+  }
 
-            // Store course name in a lookup table keyed by safe index
-            window._courseIndex = window._courseIndex || {};
-            window._courseIndex[idx] = courseName;
+  const STATUS_MESSAGES = {
+    fast:      ["Checking conflicts…"],
+    balanced:  ["Checking conflicts…", "Ranking options…"],
+    thorough:  ["Checking conflicts…", "Exploring combinations…", "Ranking options…", "Almost there…"]
+  };
 
-            const drawerId = `drawer-${idx}`;
+  let flapTimer = null;
+  function startFlapLoop(effort){
+    const messages = STATUS_MESSAGES[effort] || STATUS_MESSAGES.balanced;
+    let i = 0;
+    setLabel(messages[0]);
+    flapTimer = setInterval(() => {
+      i = (i + 1) % messages.length;
+      setLabel(messages[i]);
+    }, 950);
+  }
+  function stopFlapLoop(finalText){
+    clearInterval(flapTimer);
+    setLabel(finalText);
+  }
 
-            const groupChecks = groups.map(g => `
-                <label class="group-check-label">
-                    <input type="checkbox"
-                           data-idx="${idx}"
-                           data-group="${g}"
-                           onchange="toggleGroupExclusion(${idx}, '${g}', this.checked)"
-                    > Group ${g}
-                </label>
-            `).join('');
+  // ─── Generate ───────────────────────────────────────────────────────────
+  const EFFORT_MAP = ['fast', 'balanced', 'thorough'];
 
-            courseListEl.innerHTML += `
-                <div class="course-item">
-                    <div class="course-header">
-                        <div class="course-header-left">
-                            ${groups.length > 0 ? `
-                                <button class="toggle-groups" title="Show/hide groups"
-                                    onclick="toggleDrawer('${drawerId}', this)">▶ Groups</button>
-                            ` : ''}
-                            <span class="course-name" title="${courseName}">${courseName}</span>
-                        </div>
-                        <button class="btn-add" onclick="addCourseByIdx(${idx})">Add</button>
-                    </div>
-                    ${groups.length > 0 ? `
-                        <div class="group-drawer" id="${drawerId}">
-                            <div class="group-drawer-label">Exclude groups (uncheck to exclude):</div>
-                            <div class="group-checks">${groupChecks}</div>
-                        </div>
-                    ` : ''}
-                </div>`;
+  document.getElementById('optimizeBtn').onclick = async () => {
+    const btn = document.getElementById('optimizeBtn');
+    const effort = EFFORT_MAP[document.getElementById('effortSlider').value];
+    document.getElementById('progressTrack').hidden = false;
+    startFlapLoop(effort);
+    btn.disabled = true;
 
-            // Init exclusion set for this course
-            if (!excludedGroups[courseName]) excludedGroups[courseName] = new Set();
-        });
+    const params = new URLSearchParams();
+    selected.forEach(c => params.append('courses', c));
 
-        // All group checkboxes checked by default (= include all)
-        document.querySelectorAll('.group-drawer input[type="checkbox"]').forEach(cb => {
-            cb.checked = true;
-        });
+    // Start from manual group exclusions (from the groups modal)
+    const exclusionsObj = {};
+    Object.entries(excludedGroups).forEach(([course, groups]) => {
+      if(groups.size > 0) exclusionsObj[course] = new Set(groups);
+    });
+
+    // Merge in any groups implied by lecturer exclusions: a group is excluded
+    // if any of its sessions is taught by an instructor the user unchecked.
+    Object.entries(excludedLecturers).forEach(([course, badNames]) => {
+      if(!badNames || badNames.size === 0) return;
+      const groupMap = allCoursesFlat[course];
+      if(!groupMap) return;
+      if(!exclusionsObj[course]) exclusionsObj[course] = new Set();
+      Object.entries(groupMap).forEach(([g, groupData]) => {
+        const taughtByExcluded = groupData.sessions.some(s => s.Instructor && badNames.has(s.Instructor.trim()));
+        if(taughtByExcluded) exclusionsObj[course].add(g);
+      });
+    });
+
+    const finalExclusions = {};
+    Object.entries(exclusionsObj).forEach(([course, groupSet]) => {
+      if(groupSet.size > 0) finalExclusions[course] = [...groupSet];
+    });
+    if(Object.keys(finalExclusions).length > 0){
+      params.append('excluded_groups', JSON.stringify(finalExclusions));
     }
 
-    // ─── Toggle group drawer ──────────────────────────────────────────────────
-    function toggleDrawer(drawerId, btn) {
-        const drawer = document.getElementById(drawerId);
-        const isOpen = drawer.classList.toggle('open');
-        btn.textContent = (isOpen ? '▼' : '▶') + ' Groups';
-    }
+    document.querySelectorAll('.prefs-section input[type="checkbox"]:checked').forEach(cb => {
+      if(cb.value) params.append('preferences', cb.value);
+    });
 
-    // ─── Group exclusion logic ────────────────────────────────────────────────
-    // checked = include, unchecked = exclude
-    function toggleGroupExclusion(idx, group, checked) {
-        const courseName = (window._courseIndex || {})[idx];
-        if (!courseName) return;
-        if (!excludedGroups[courseName]) excludedGroups[courseName] = new Set();
-        if (checked) {
-            excludedGroups[courseName].delete(group);
-        } else {
-            excludedGroups[courseName].add(group);
-        }
-    }
+    document.querySelectorAll('input[name="freeDay"]:checked').forEach(cb => {
+      params.append('free_days', cb.value);
+    });
 
-    // ─── Add course to selection ──────────────────────────────────────────────
-    function addCourseByIdx(idx) {
-        const courseName = (window._courseIndex || {})[idx];
-        if (!courseName) return;
-        selected.add(courseName);
-        renderSelection();
-    }
+    const numSchedules = document.getElementById('numSchedules').value;
+    if(numSchedules) params.append('num_schedules', numSchedules);
 
-    // Keep addCourse for any legacy calls
-    function addCourse(courseName) {
-        selected.add(courseName);
-        renderSelection();
-    }
+    params.append('effort', effort);
 
-    function renderSelection() {
-        const container = document.getElementById('selectedContainer');
-        container.innerHTML = '';
-        let si = 0;
-        window._selectedIndex = {};
-        selected.forEach(c => {
-            window._selectedIndex[si] = c;
-            const excl = excludedGroups[c] ? [...excludedGroups[c]] : [];
-            const exclNote = excl.length > 0
-                ? `<span style="font-size:0.7rem;color:#ef4444;margin-left:4px;">(excl. ${excl.map(g=>'Grp '+g).join(', ')})</span>`
-                : '';
-            container.innerHTML += `
-                <div class="selected-item">
-                    <div style="flex:1;min-width:0;">
-                        <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c}</div>
-                        ${exclNote}
-                    </div>
-                    <button style="border:none;background:none;color:red;cursor:pointer;font-weight:bold;flex-shrink:0;"
-                        onclick="removeSelected(${si})">×</button>
-                </div>`;
-            si++;
-        });
-        document.getElementById('count').innerText = selected.size;
-        document.getElementById('optimizeBtn').disabled = selected.size === 0;
-    }
+    try{
+      const res = await fetch(`/api/optimize/?${params.toString()}`);
+      const data = await res.json();
 
-    // ─── Optimize button ──────────────────────────────────────────────────────
-    document.getElementById('optimizeBtn').onclick = async () => {
-        const btn = document.getElementById('optimizeBtn');
-        btn.innerText = "Processing...";
-        btn.disabled = true;
+      if(data.schedule && data.schedule.length > 0){
+        allOptions = data.schedule;
+        currentIndex = 0;
 
-        const params = new URLSearchParams();
-
-        // Courses
-        selected.forEach(c => params.append('courses', c));
-
-        // Excluded groups — send as one JSON object { course: [groups], ... }
-        const exclusionsObj = {};
-        Object.entries(excludedGroups).forEach(([course, groups]) => {
-            if (groups.size > 0) {
-                exclusionsObj[course] = [...groups];
-            }
-        });
-        if (Object.keys(exclusionsObj).length > 0) {
-            params.append('excluded_groups', JSON.stringify(exclusionsObj));
-        }
-
-        // Preferences
-        document.querySelectorAll('#prefList input[type="checkbox"]:checked').forEach(cb => {
-            params.append('preferences', cb.value);
+        courseColorMap = {};
+        const uniqueResultCourses = [...new Set(allOptions.flat().map(s => s.Course))];
+        uniqueResultCourses.forEach((c, i) => {
+          courseColorMap[c] = palette[i % palette.length];
         });
 
-        // Free days
-        document.querySelectorAll('input[name="free_day"]:checked').forEach(cb => {
-            params.append('free_days', cb.value);
-        });
-
-        // Lecturer
-        const lecturerInput = document.getElementById('lecturerInput').value.trim();
-        if (lecturerInput) params.append('lecturer', lecturerInput);
-
-        // Number of schedules
-        const numSchedules = document.getElementById('numSchedules').value;
-        if (numSchedules) params.append('num_schedules', numSchedules);
-
-        try {
-            const res = await fetch(`/api/optimize/?${params.toString()}`);
-            const data = await res.json();
-
-            if (data.schedule && data.schedule.length > 0) {
-                allOptions = data.schedule;
-                currentIndex = 0;
-
-                courseColorMap = {};
-                const uniqueResultCourses = [...new Set(allOptions.flat().map(s => s.Course))];
-                uniqueResultCourses.forEach((c, i) => {
-                    courseColorMap[c] = palette[i % palette.length];
-                });
-
-                renderAll();
-                document.getElementById('scheduleResults').style.display = 'grid';
-                document.getElementById('scheduleResults').scrollIntoView({ behavior: 'smooth' });
-            } else {
-                alert("No conflict-free schedules found for this selection!");
-            }
-        } catch (e) {
-            alert("Connection error. Is the server running?");
-            console.error(e);
-        } finally {
-            btn.innerText = "Generate Schedule";
-            btn.disabled = false;
-        }
-    };
-
-    // ─── Schedule rendering ───────────────────────────────────────────────────
-    function changeOption(step) {
-        currentIndex = (currentIndex + step + allOptions.length) % allOptions.length;
         renderAll();
+        document.getElementById('scheduleResults').style.display = 'block';
+        document.getElementById('scheduleResults').scrollIntoView({ behavior:'smooth' });
+      } else {
+        document.getElementById('scheduleResults').style.display = 'block';
+        document.getElementById('legendContainer').innerHTML = '';
+        document.getElementById('optionCounter').innerText = '—';
+        document.getElementById('tableContainer').innerHTML = '<p class="no-results">No conflict-free schedules found for this selection. Try excluding fewer groups or removing a course.</p>';
+      }
+    }catch(e){
+      alert("Connection error. Is the server running?");
+      console.error(e);
+    }finally{
+      stopFlapLoop("Generate schedule");
+      document.getElementById('progressTrack').hidden = true;
+      btn.disabled = selected.size === 0;
     }
+  };
 
-    function renderAll() {
-        const sessions = allOptions[currentIndex];
-        document.getElementById('optionCounter').innerText = `Option ${currentIndex + 1} of ${allOptions.length}`;
+  function changeOption(step){
+    if(allOptions.length === 0) return;
+    currentIndex = (currentIndex + step + allOptions.length) % allOptions.length;
+    renderAll();
+  }
 
-        // Legend
-        const legend = document.getElementById('legendContainer');
-        legend.innerHTML = '';
-        const currentOptionCourses = [...new Set(sessions.map(s => s.Course))];
-        currentOptionCourses.forEach(courseName => {
-            const color = courseColorMap[courseName] || '#f1f5f9';
-            const group = sessions.find(s => s.Course === courseName).Group;
-            legend.innerHTML += `
-                <div class="legend-item" style="background: ${color}; border-color: rgba(0,0,0,0.1);">
-                    <div class="color-dot" style="background: white; border: 2px solid rgba(0,0,0,0.2);"></div>
-                    <div style="flex-grow: 1;">
-                        <div class="session-name" style="font-size: 0.8rem;">${courseName.split('-')[0]}</div>
-                        <div style="font-size: 0.7rem; font-weight: 600; opacity: 0.7;">Group ${group}</div>
-                    </div>
-                </div>`;
-        });
+  function renderAll(){
+    const sessions = allOptions[currentIndex];
+    document.getElementById('optionCounter').innerText = `Option ${currentIndex + 1} of ${allOptions.length}`;
 
-        // Timetable
-        const days = ['Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
-        const periods = [1,2,3,4,5,6,7,8,9,10,11,12];
+    // Legend
+    const legend = document.getElementById('legendContainer');
+    legend.innerHTML = '';
+    const currentOptionCourses = [...new Set(sessions.map(s => s.Course))];
+    currentOptionCourses.forEach((courseName, i) => {
+      const colorVar = courseColorMap[courseName] || '--c8';
+      const color = colorOf(colorVar);
+      const group = sessions.find(s => s.Course === courseName).Group;
+      legend.innerHTML += `
+        <div class="legend-item" style="animation-delay:${i * 25}ms;">
+          <div class="legend-tab" style="background:${color};"></div>
+          <div>
+            <div class="legend-name">${courseName.split('-')[0].trim()}</div>
+            <div class="legend-group">Group ${group}</div>
+          </div>
+        </div>`;
+    });
 
-        let html = `<table><thead><tr><th>Day / Period</th>`;
-        periods.forEach(p => html += `<th>P${p}</th>`);
-        html += `</tr></thead><tbody>`;
+    // Timetable
+    let maxPeriod = PERIOD_MIN;
+    sessions.forEach(s => { if(s['end-time'] > maxPeriod) maxPeriod = s['end-time']; });
+    maxPeriod = Math.max(maxPeriod, 10);
 
-        days.forEach(day => {
-            html += `<tr><td class="day-col">${day}</td>`;
-            let p = 1;
-            while (p <= 12) {
-                const session = sessions.find(s =>
-                    s.Day.trim().toLowerCase() === day.toLowerCase() &&
-                    parseInt(s['start-time']) === p
-                );
-                if (session) {
-                    const color = courseColorMap[session.Course] || '#f1f5f9';
-                    const duration = (parseInt(session['end-time']) - parseInt(session['start-time'])) + 1;
-                    html += `<td colspan="${duration}">
-                        <div class="session-card" style="background-color: ${color};">
-                            <div class="session-type">${session.Type}</div>
-                            <div class="session-name">${session.Course.split('-')[0]}</div>
-                            <div class="session-instr">${session.Instructor || ''}</div>
-                        </div>
-                    </td>`;
-                    p += duration;
-                } else {
-                    html += `<td></td>`;
-                    p++;
-                }
-            }
-            html += `</tr>`;
-        });
+    const periods = [];
+    for(let p = PERIOD_MIN; p <= Math.min(maxPeriod, PERIOD_MAX); p++) periods.push(p);
 
-        document.getElementById('tableContainer').innerHTML = html + `</tbody></table>`;
-    }
+    let html = `<table class="timetable"><thead><tr><th class="period-head">Day</th>`;
+    periods.forEach(p => html += `<th class="mono">P${p}</th>`);
+    html += `</tr></thead><tbody>`;
 
-    // ─── Preference toggles ───────────────────────────────────────────────────
-    function toggleFreeDays(cb) {
-        document.getElementById('freeDaysContainer').style.display = cb.checked ? 'block' : 'none';
-    }
-    function toggleLecturer(cb) {
-        document.getElementById('lecturerContainer').style.display = cb.checked ? 'block' : 'none';
-    }
+    DAYS.forEach((day, dayIdx) => {
+      const rowDelay = dayIdx * 30;
+      html += `<tr><td class="day-col"><span class="day-label" style="animation-delay:${rowDelay}ms">${day.slice(0,3)}</span></td>`;
+      let p = periods[0];
+      const maxP = periods[periods.length - 1];
+      let colIdx = 0;
+      while(p <= maxP){
+        const session = sessions.find(s =>
+          s.Day.trim().toLowerCase() === day.toLowerCase() &&
+          parseInt(s['start-time']) === p
+        );
+        if(session){
+          const colorVar = courseColorMap[session.Course] || '--c8';
+          const color = colorOf(colorVar);
+          const startP = parseInt(session['start-time']), endP = parseInt(session['end-time']);
+          const duration = (endP - startP) + 1;
+          const cellDelay = rowDelay + colIdx * 10;
+          const startT = PERIOD_TIMES[startP], endT = PERIOD_TIMES[endP];
+          const timeLabel = (startT && endT) ? `${fmtTime(startT.start)} – ${fmtTime(endT.end)}` : '';
+          html += `<td colspan="${Math.max(duration,1)}">
+            <div class="session-card reveal" style="background:${color}22; border-left-color:${color}; animation-delay:${cellDelay}ms;">
+              <div class="session-type" style="color:${color};">${session.Type}</div>
+              <div class="session-name">${session.Course.split('-')[0].trim()}</div>
+              <div class="session-time mono">${timeLabel}</div>
+              <div class="session-instr">${session.Instructor || ''}</div>
+            </div>
+          </td>`;
+          p += duration;
+        } else {
+          html += `<td><div class="cell-empty"></div></td>`;
+          p++;
+        }
+        colIdx++;
+      }
+      html += `</tr>`;
+    });
 
-    // ─── Helpers ─────────────────────────────────────────────────────────────
-    function removeSelected(idx) {
-        const courseName = (window._selectedIndex || {})[idx];
-        if (courseName) { selected.delete(courseName); renderSelection(); }
-    }
+    document.getElementById('tableContainer').innerHTML = html + `</tbody></table>`;
+  }
 
-    // ─── Boot ─────────────────────────────────────────────────────────────────
-    loadData();
+  loadData();
 </script>
 </body>
 </html>

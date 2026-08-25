@@ -7,6 +7,12 @@ from schedule_maker.backtracking import filterCourses, score_schedules, excludeG
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev")
 
+EFFORT_CAPS = {
+    "fast": 5000,
+    "balanced": 50000,
+    "thorough": 300000,
+}
+
 data = getOutput()
 
 @app.route("/api/courses")
@@ -22,6 +28,11 @@ def get_schedules():
     number = request.args.get('num_schedules')
     exc = request.args.get('excluded_groups')
 
+
+    effort = request.args.get('effort', 'balanced')
+    max_raw_results = EFFORT_CAPS.get(effort, EFFORT_CAPS['balanced'])
+
+    print(max_raw_results)
     if not number:
         number = 0
 
@@ -38,7 +49,7 @@ def get_schedules():
 
     
     result = []
-    placeCourse(0, [], organized_courses, subject_ordering, result)
+    placeCourse(0, [], organized_courses, subject_ordering, result, max_results=max_raw_results)
     
 
     if not result:

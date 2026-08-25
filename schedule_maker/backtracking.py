@@ -64,8 +64,8 @@ def build_schedule_dict(schedule):
         "score": 0
     }
 
-def placeCourse(courseidx, schedule, organized_courses, subject_ordering, result, mask=0):
-    if len(result) == 50000: # Cap number of schedules generated
+def placeCourse(courseidx, schedule, organized_courses, subject_ordering, result, mask=0, max_results=None):
+    if max_results is not None and len(result) >= max_results: # Cap number of schedules generated
         return
     if courseidx == len(subject_ordering):
         result.append(build_schedule_dict(list(schedule)))
