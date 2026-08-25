@@ -1,6 +1,59 @@
 from bs4 import BeautifulSoup
 import json
 import os
+# 1) bit mask timings
+# 2) Sort courses by fewest groups first before backtracking
+
+DAY_INDEX = {
+    "Saturday": 0,
+    "Sunday": 1,
+    "Monday": 2,
+    "Tuesday": 3,
+    "Wednesday": 4,
+    "Thursday": 5,
+    "Friday": 6,
+}
+
+PERIODS_PER_DAY = 17
+
+def sessionMask(day: str, start: int, end: int) -> int:
+    day_idx = DAY_INDEX[day]
+    mask = 0
+
+    for period in range(start, end+1):
+        bit = day_idx * PERIODS_PER_DAY + period
+        mask |= (1 << bit)
+
+    return mask
+
+def groupMask(sessions: list[dict]) -> int:
+    
+    mask = 0
+    for sess in sessions:
+        mask |= sessionMask(sess["Day"], sess["start-time"], sess["end-time"])
+
+    # print(mask)
+    return mask
+
+def attachMasks(courses: dict) -> dict:
+    for department, course in courses.items():
+
+        # print(f"{course}\n")
+        for course_name, groups in course.items():
+
+            
+            for grp_letter, sessions in groups.items():
+                mask = groupMask(sessions)
+                
+                groups[grp_letter] = {
+                    "sessions": sessions,
+                    "_mask": mask
+                }
+                
+                
+
+    return courses
+                
 
 def extractSubjects(fileName):
 
@@ -126,7 +179,9 @@ def extractSubjects(fileName):
         subject["start-time"] -= 1
         subject["end-time"] -= 1
 
-    
+        # print(subject)
+
+
     return subjects  
                     
 
@@ -169,9 +224,7 @@ def getOutput():
             if department not in organized_courses:
                  organized_courses[department] = {}
             organized_courses[department][course_name] = groups
+
+
+    attachMasks(organized_courses)
     return organized_courses
-
-
-
-
-

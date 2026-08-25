@@ -289,9 +289,21 @@
         // Collect unique semesters from all courses in this department
         // Data shape: { CourseName: { GroupName: [sessions] } }
         const semesterSet = new Set();
+        // Object.values(globalData[activeDept]).forEach(groupMap => {
+
+        //     console.log(groupMap)
+        //     const grpMap = groupMap.sessions
+        //     console.log(grpMap)
+        //     Object.values(grpMap).forEach(sessions => {
+        //         sessions.forEach(s => {
+        //             if (s.Semester) semesterSet.add(String(s.Semester));
+        //         });
+        //     });
+        // });
         Object.values(globalData[activeDept]).forEach(groupMap => {
-            Object.values(groupMap).forEach(sessions => {
-                sessions.forEach(s => {
+            // groupMap = { "C": {sessions:[...], mask:...}, "D": {...} }
+            Object.values(groupMap).forEach(groupData => {
+                groupData.sessions.forEach(s => {
                     if (s.Semester) semesterSet.add(String(s.Semester));
                 });
             });
@@ -328,9 +340,16 @@
 
         // Data shape: { CourseName: { GroupName: [sessions] } }
         const deptCourses = globalData[activeDept];
+        // const coursesInSem = Object.keys(deptCourses).filter(courseName =>
+        //     Object.values(deptCourses[courseName]).some(sessions =>
+        //         sessions.some(s => String(s.Semester) === sem)
+        //     )
+        // );
+
+        // NEW
         const coursesInSem = Object.keys(deptCourses).filter(courseName =>
-            Object.values(deptCourses[courseName]).some(sessions =>
-                sessions.some(s => String(s.Semester) === sem)
+            Object.values(deptCourses[courseName]).some(groupData =>
+                groupData.sessions.some(s => String(s.Semester) === sem)
             )
         );
 
@@ -343,7 +362,7 @@
         coursesInSem.forEach((courseName, idx) => {
             const groupMap = deptCourses[courseName];
             const groups = Object.keys(groupMap).filter(g =>
-                groupMap[g].some(s => String(s.Semester) === sem)
+                groupMap[g].sessions.some(s => String(s.Semester) === sem)
             ).sort();
 
             // Store course name in a lookup table keyed by safe index

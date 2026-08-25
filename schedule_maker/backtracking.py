@@ -25,47 +25,38 @@ def excludeGroups(result, excGps):
         
     return new_courses
 
-
-
-def conflictChecker(item1, item2):
-    if item1["Day"] == item2["Day"]:
-        if item1["start-time"] < item2["end-time"] and item2["start-time"] < item1["end-time"]:
-            return True
-    return False
-
-def isGroupSafe(group_slots, curr_schedule):
-    for new_slot in group_slots:
-        for existing_slot in curr_schedule:
-            if conflictChecker(new_slot, existing_slot):
-                return False
-    return True
-
 def build_schedule_dict(schedule):
     day_map = {}
     for item in schedule:
-        day_map.setdefault(item["Day"], []).append(item)
+        day = item["Day"]
+        if day in day_map:
+            day_map[day].append(item)
+        else:
+            day_map[day] = [item]
 
     days_on = len(day_map)
     total_gaps = 0
     slot1 = False
     slot9 = False
 
-    for day, slots in day_map.items():
+    for slots in day_map.values():
         slots.sort(key=lambda x: x["start-time"])
         for i in range(len(slots) - 1):
-            current_end = slots[i]["end-time"]
-            next_start = slots[i+1]["start-time"]
-            if next_start > current_end + 1:
-                total_gaps += (next_start - current_end - 1)
-
-    for item in schedule:
-        if item["start-time"] == 1:
+            gap = slots[i+1]["start-time"] - slots[i]["end-time"] - 1
+            if gap > 0:
+                total_gaps += gap
+            if slots[i]["start-time"] == 1:
+                slot1 = True
+            if slots[i]["start-time"] >= 9:
+                slot9 = True
+        # check the last slot in each day too (loop above skips it)
+        if slots[-1]["start-time"] == 1:
             slot1 = True
-        if item["start-time"] >= 9:
+        if slots[-1]["start-time"] >= 9:
             slot9 = True
 
     return {
-        "schedule": list(schedule),
+        "schedule": schedule,
         "days_on": days_on,
         "gaps": total_gaps,
         "slot1": slot1,
@@ -73,19 +64,24 @@ def build_schedule_dict(schedule):
         "score": 0
     }
 
-def placeCourse(courseidx, schedule, organized_courses, subject_ordering, result):
+def placeCourse(courseidx, schedule, organized_courses, subject_ordering, result, mask=0):
+    if len(result) == 50000: # Cap number of schedules generated
+        return
     if courseidx == len(subject_ordering):
-        result.append(build_schedule_dict(schedule))
+        result.append(build_schedule_dict(list(schedule)))
         return
 
     course_name = subject_ordering[courseidx]
     course_groups = organized_courses[course_name]
 
     for gp_id, slots in course_groups.items():
-        if isGroupSafe(slots, schedule):
-            schedule.extend(slots)
-            placeCourse(courseidx+1, schedule, organized_courses, subject_ordering, result)
-            for i in range(len(slots)):
+
+        if not (slots["_mask"] & mask):
+            # mask |= slots["_mask"]
+            sessions = slots["sessions"]
+            schedule.extend(sessions)
+            placeCourse(courseidx+1, schedule, organized_courses, subject_ordering, result, mask=mask | slots["_mask"])
+            for _ in range(len(sessions)):
                 schedule.pop()
 
 def score_schedules(result, selected_preferences, selected_free_days=None, lecturer_input=None):
@@ -133,3 +129,12 @@ def score_schedules(result, selected_preferences, selected_free_days=None, lectu
 
     result.sort(key=lambda x: x["score"], reverse=True)
     return result
+
+
+def sortBySmallestGroups(courses):
+    for name, groups in courses.items():
+        if len(groups) == 0:
+            raise ValueError(f"No groups available for '{name}' — check exclusions")
+    return sorted(courses.keys(), key=lambda course_name: len(courses[course_name]))
+
+
