@@ -47,7 +47,7 @@ def attachMasks(courses: dict) -> dict:
                 
                 groups[grp_letter] = {
                     "sessions": sessions,
-                    "_mask": mask
+                    "_mask": str(mask)
                 }
                 
                 

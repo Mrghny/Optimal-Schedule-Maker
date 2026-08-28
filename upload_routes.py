@@ -50,6 +50,14 @@ def admin_required(fn):
     return wrapper
 
 
+def api_admin_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not session.get("is_admin"):
+            return jsonify({"error": "Admin login required."}), 401
+        return fn(*args, **kwargs)
+    return wrapper
+
 # ── TODO 1: plug in your real scraper here ──────────────────────────────
 def parse_html_page(html_content: str) -> dict:
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -61,33 +69,29 @@ def parse_html_page(html_content: str) -> dict:
 
 import course_store
 
-
 def merge_into_live_courses(parsed_courses: dict):
-    if os.path.exists(course_store.DB_PATH):
-        with open(course_store.DB_PATH, "r", encoding="utf-8") as f:
-            main_data = json.load(f)
-    else:
-        main_data = {}
+    # 1. Retrieve current data (from MongoDB or JSON fallback)
+    main_data = course_store.reload_courses() or {}
 
+    # 2. Merge the new parsed courses into main_data
     for department, courses in parsed_courses.items():
         main_data.setdefault(department, {})
         for course_name, course_data in courses.items():
             main_data[department][course_name] = course_data
 
-    with open(course_store.DB_PATH, "w", encoding="utf-8") as f:
-        json.dump(main_data, f, indent=4)
-
+    # 3. Persist updated data and reload memory
+    course_store.save_courses(main_data)
     course_store.reload_courses()
-            
 
 
-# ── Public: upload page + endpoint ──────────────────────────────────────
 @upload_bp.route("/upload", methods=["GET"])
+@admin_required
 def upload_page():
     return render_template("upload.html")
 
 
 @upload_bp.route("/api/upload", methods=["POST"])
+@api_admin_required
 def api_upload():
     ip = request.remote_addr or "unknown"
     if _is_rate_limited(ip):
@@ -128,7 +132,10 @@ def api_upload():
     })
 
 
+
 # ── Admin: login ─────────────────────────────────────────────────────────
+import hmac
+
 @upload_bp.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
     ip = request.remote_addr or "unknown"
@@ -138,7 +145,7 @@ def admin_login():
             return render_template("admin_login.html", error="Too many login attempts. Try again later bozo")
         if not ADMIN_PASSWORD:
             return "ADMIN_PASSWORD is not set on the server.", 500
-        if request.form.get("password") == ADMIN_PASSWORD:
+        if hmac.compare_digest(request.form.get("password", ""), ADMIN_PASSWORD or ""):
             session["is_admin"] = True
             return redirect(url_for("upload_bp.admin_page"))
         return render_template("admin_login.html", error="Wrong password.")
@@ -160,7 +167,7 @@ def admin_page():
 
 
 @upload_bp.route("/api/pending/<upload_id>/approve", methods=["POST"])
-@admin_required
+@api_admin_required
 def approve(upload_id):
     parsed = storage.get_pending_upload_data(upload_id)
     if parsed is None:
@@ -171,7 +178,7 @@ def approve(upload_id):
 
 
 @upload_bp.route("/api/pending/<upload_id>/reject", methods=["POST"])
-@admin_required
+@api_admin_required
 def reject(upload_id):
     storage.mark_status(upload_id, "rejected")
     return jsonify({"message": "Rejected."})

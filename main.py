@@ -4,10 +4,13 @@ from schedule_maker.scraper import getOutput
 from schedule_maker.backtracking import filterCourses, score_schedules, excludeGroups, placeCourse, sortBySmallestGroups
 import course_store
 from upload_routes import upload_bp
-app = Flask(__name__)
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 # app.secret_key = os.environ.get("SECRET_KEY", "dev")
 
 
+app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
 app.register_blueprint(upload_bp)                  
@@ -33,6 +36,7 @@ def get_schedules():
     number = request.args.get('num_schedules')
     exc = request.args.get('excluded_groups')
 
+    
 
     effort = request.args.get('effort', 'balanced')
     max_raw_results = EFFORT_CAPS.get(effort, EFFORT_CAPS['balanced'])
@@ -42,7 +46,9 @@ def get_schedules():
 
     if not selected_courses:
         return jsonify({"error": "No courses selected"}), 400
-
+    if len(selected_courses) > 8:
+        return jsonify({"error": "Too many courses selected"}), 400
+    
     organized_courses = filterCourses(course_store.all_courses, selected_courses)
     organized_courses = excludeGroups(organized_courses,exc)
     subject_ordering = sortBySmallestGroups(organized_courses)
@@ -55,7 +61,6 @@ def get_schedules():
     result = []
     placeCourse(0, [], organized_courses, subject_ordering, result, max_results=max_raw_results)
     
-
     if not result:
         return jsonify({"schedule": []})
 
@@ -65,6 +70,7 @@ def get_schedules():
         selected_free_days=selected_free_days if selected_free_days else None,
         lecturer_input=lecturer_input if lecturer_input else None
     )
+
 
     return jsonify({"schedule": [s["schedule"] for s in scored[:int(number)]]})
 

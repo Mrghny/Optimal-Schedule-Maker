@@ -14,3 +14,6 @@ data/pending
 db.json
 # Flask session/instance
 instance/
+
+test.py
+db_backups
