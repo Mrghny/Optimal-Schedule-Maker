@@ -55,9 +55,9 @@ def attachMasks(courses: dict) -> dict:
     return courses
                 
 
-def extractSubjects(fileName):
+def extractSubjects(filepath):
 
-    with open(f"./schedule_maker/Schedules/{fileName}") as fp:
+    with open(f"{filepath}") as fp:
         soup = BeautifulSoup(fp, 'html.parser')
 
     table = soup.find(id="ctl00_ContentPlaceHolder1_Schedule1")
@@ -97,8 +97,8 @@ def extractSubjects(fileName):
         for td in tr.find_all(["th", "td"]):
             while (r_idx, c_idx) in occupied:
                 c_idx += 1
-            colspan = int(td.get('colspan', 1))
-            rowspan = int(td.get('rowspan', 1))
+            colspan = min(int(td.get('colspan', 1)),50)
+            rowspan = min(int(td.get('rowspan', 1)),50)
             for dr in range(rowspan):
                 for dc in range(colspan):
                     grid[(r_idx + dr, c_idx + dc)] = td
@@ -186,19 +186,17 @@ def extractSubjects(fileName):
                     
 
 
-def getOutput():
+def getOutput(default = "./schedule_maker/Schedules"):
     file_names = []
-    
-    for (dirpath, dirnames, filenames) in os.walk("./schedule_maker/Schedules"):
+    for (dirpath, dirnames, filenames) in os.walk(default):
         file_names.extend(filenames)
         break
-    # print(file_names)
 
     all_courses = {}
 
     for file in file_names:
-        
-        current_course = extractSubjects(file)
+        filepath = os.path.join(default, file)
+        current_course = extractSubjects(filepath)
         
         department = current_course[0]["Department"]
         course = current_course[0]["Course"]

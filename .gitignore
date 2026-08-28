@@ -10,6 +10,7 @@ __pycache__/
 
 # Generated JSON files
 schedule_maker/static/output.json
-
+data/pending
+db.json
 # Flask session/instance
 instance/

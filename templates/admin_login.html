@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{ --paper:#FAFAFA; --paper-raised:#fff; --ink:#14171F; --ink-soft:#5B6270; --line:#E2E4E8; --line-strong:#CBCFD6; --accent:#2E4374; --warn:#B3491F; --warn-soft:#FBEEE7; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  .box{ background:var(--paper-raised); border:1px solid var(--line); border-radius:12px; padding:28px; width:100%; max-width:320px; }
+  h1{ font-family:'Space Grotesk',sans-serif; font-size:18px; margin:0 0 18px; }
+  input{ width:100%; padding:10px 12px; border:1px solid var(--line-strong); border-radius:7px; font-size:13.5px; margin-bottom:14px; box-sizing:border-box; }
+  button{ width:100%; padding:11px; background:var(--ink); color:#fff; border:none; border-radius:7px; font-weight:600; font-size:13px; cursor:pointer; }
+  button:hover{ background:var(--accent); }
+  .err{ background:var(--warn-soft); color:var(--warn); font-size:12.5px; padding:9px 11px; border-radius:6px; margin-bottom:14px; }
+</style>
+</head>
+<body>
+  <form class="box" method="POST">
+    <h1>Admin review login</h1>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <input type="password" name="password" placeholder="Password" autofocus>
+    <button type="submit">Sign in</button>
+  </form>
+</body>
+</html>
+
+<script>
+
+  
+</script>

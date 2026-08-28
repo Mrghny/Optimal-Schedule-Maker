@@ -493,6 +493,17 @@
   const DAYS = ['Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
   const PERIOD_MIN = 1, PERIOD_MAX = 17;
 
+  // Escapes untrusted text before it's inserted via innerHTML. Course names,
+  // instructor names, and group letters all ultimately come from uploaded
+  // HTML pages (via the crowdsourced upload feature) -- without this, a
+  // malicious value in any of those fields could execute arbitrary JS for
+  // every student viewing a schedule that includes it.
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
   // ─── Period → clock time mapping ───────────────────────────────────────
   // Pattern: pairs of periods span 105min starting 8:30 (52 + 53 split),
   // followed by a 15min break, then the next pair. Repeats indefinitely.
@@ -574,7 +585,7 @@
                 <input type="checkbox" id="lecopt-${label}-${i}"
                        onchange="toggleLecturerExclusion('${cName}', '${name.replace(/'/g,"\\'")}', this.checked)"
                        ${excluded.has(name) ? '' : 'checked'}>
-                ${name}
+                ${escapeHtml(name)}
               </label>`).join('')}
           </div>
         </div>`;
@@ -705,7 +716,7 @@
             <div class="course-header-left">
               ${groups.length > 0 ? `<button class="toggle-groups" onclick="openGroupModal(${idx})">${groups.length} grp</button>` : ''}
               ${lecturerNames.size > 0 ? `<button class="toggle-groups" onclick="openLecturerModal(${idx})">${lecturerNames.size} lec</button>` : ''}
-              <span class="course-name" title="${courseName}">${courseName}</span>
+              <span class="course-name" title="${escapeHtml(courseName)}">${escapeHtml(courseName)}</span>
             </div>
             <button class="btn-add ${isAdded ? 'added' : ''}" id="add-btn-${idx}" onclick="addCourseByIdx(${idx})">${isAdded ? 'Added' : 'Add'}</button>
           </div>
@@ -740,7 +751,7 @@
         <input type="checkbox" data-idx="${idx}" data-group="${g}"
                onchange="toggleGroupExclusion(${idx}, '${g}', this.checked)"
                ${excluded.has(g) ? '' : 'checked'}>
-        Group ${g}
+        Group ${escapeHtml(g)}
       </label>
     `).join('');
 
@@ -792,7 +803,7 @@
           <div class="selected-item">
             <div class="stub-tab" style="background:${tabColor};"></div>
             <div class="selected-item-body">
-              <div class="selected-item-name" title="${c}">${c}</div>
+              <div class="selected-item-name" title="${escapeHtml(c)}">${escapeHtml(c)}</div>
               ${exclNote}
             </div>
             <button class="remove-btn" onclick="removeSelected(${si})">×</button>
@@ -958,8 +969,8 @@
         <div class="legend-item" style="animation-delay:${i * 25}ms;">
           <div class="legend-tab" style="background:${color};"></div>
           <div>
-            <div class="legend-name">${courseName.split('-')[0].trim()}</div>
-            <div class="legend-group">Group ${group}</div>
+            <div class="legend-name">${escapeHtml(courseName.split('-')[0].trim())}</div>
+            <div class="legend-group">Group ${escapeHtml(group)}</div>
           </div>
         </div>`;
     });
@@ -997,10 +1008,10 @@
           const timeLabel = (startT && endT) ? `${fmtTime(startT.start)} – ${fmtTime(endT.end)}` : '';
           html += `<td colspan="${Math.max(duration,1)}">
             <div class="session-card reveal" style="background:${color}22; border-left-color:${color}; animation-delay:${cellDelay}ms;">
-              <div class="session-type" style="color:${color};">${session.Type}</div>
-              <div class="session-name">${session.Course.split('-')[0].trim()}</div>
+              <div class="session-type" style="color:${color};">${escapeHtml(session.Type)}</div>
+              <div class="session-name">${escapeHtml(session.Course.split('-')[0].trim())}</div>
               <div class="session-time mono">${timeLabel}</div>
-              <div class="session-instr">${session.Instructor || ''}</div>
+              <div class="session-instr">${escapeHtml(session.Instructor || '')}</div>
             </div>
           </td>`;
           p += duration;
