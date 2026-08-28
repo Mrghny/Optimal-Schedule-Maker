@@ -76,11 +76,10 @@ def placeCourse(courseidx, schedule, organized_courses, subject_ordering, result
 
     for gp_id, slots in course_groups.items():
 
-        if not (slots["_mask"] & mask):
-            # mask |= slots["_mask"]
+        if not (int(slots["_mask"]) & mask):
             sessions = slots["sessions"]
             schedule.extend(sessions)
-            placeCourse(courseidx+1, schedule, organized_courses, subject_ordering, result, mask=mask | slots["_mask"])
+            placeCourse(courseidx+1, schedule, organized_courses, subject_ordering, result, mask=mask | int(slots["_mask"]))
             for _ in range(len(sessions)):
                 schedule.pop()
 

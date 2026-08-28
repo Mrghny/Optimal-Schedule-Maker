@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add course data — AASTMT Schedule</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAFAFA; --paper-raised:#FFFFFF; --ink:#14171F; --ink-soft:#5B6270; --ink-faint:#9AA0AC;
+    --line:#E2E4E8; --line-strong:#CBCFD6; --accent:#2E4374; --accent-soft:#EAEEF6; --warn:#B3491F; --warn-soft:#FBEEE7;
+    --good:#2F6B4F; --good-soft:#E9F3EE;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',system-ui,sans-serif; }
+  .wrap{ max-width:560px; margin:0 auto; padding:60px 24px; }
+  .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent); font-weight:600; margin:0 0 8px; }
+  h1{ font-family:'Space Grotesk',sans-serif; font-size:26px; margin:0 0 10px; }
+  p.lead{ color:var(--ink-soft); font-size:14px; line-height:1.6; margin:0 0 28px; }
+
+  .panel{ background:var(--paper-raised); border:1px solid var(--line); border-radius:12px; padding:24px; }
+  .steps{ margin:0 0 22px; padding-left:20px; font-size:13px; color:var(--ink-soft); line-height:1.8; }
+
+  .dropzone{
+    border:1.5px dashed var(--line-strong); border-radius:10px; padding:32px 20px; text-align:center;
+    cursor:pointer; transition:0.15s; margin-bottom:16px;
+  }
+  .dropzone:hover, .dropzone.drag{ border-color:var(--accent); background:var(--accent-soft); }
+  .dropzone input{ display:none; }
+  .dz-label{ font-size:13.5px; font-weight:500; }
+  .dz-sub{ font-size:11.5px; color:var(--ink-faint); margin-top:4px; }
+  .file-chip{ display:none; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:12px; background:var(--accent-soft); color:var(--accent); padding:8px 12px; border-radius:7px; margin-bottom:16px; }
+
+  .btn-submit{
+    width:100%; padding:13px; background:var(--ink); color:#fff; border:none; border-radius:8px;
+    font-weight:600; font-size:13.5px; cursor:pointer; transition:0.15s;
+  }
+  .btn-submit:hover:not(:disabled){ background:var(--accent); }
+  .btn-submit:disabled{ background:var(--line-strong); color:var(--ink-faint); cursor:not-allowed; }
+
+  .status{ margin-top:16px; padding:12px 14px; border-radius:8px; font-size:13px; display:none; }
+  .status.ok{ background:var(--good-soft); color:var(--good); display:block; }
+  .status.err{ background:var(--warn-soft); color:var(--warn); display:block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">AASTMT · Add Data</p>
+  <h1>Help grow the course catalog</h1>
+  <p class="lead">Upload a saved copy of a college portal schedule page and it'll be reviewed before going live. This keeps the tool current without hammering the portal with automated requests.</p>
+
+  <div class="panel">
+    <ol class="steps">
+      <li>Open the course page on the college portal</li>
+      <li>Press Ctrl+S (or Cmd+S) and save as "Webpage, HTML only"</li>
+      <li>Upload that .html file below</li>
+    </ol>
+
+    <label class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" accept=".html,.htm">
+      <div class="dz-label">Click to choose a file, or drag it here</div>
+      <div class="dz-sub">.html only, up to 5MB</div>
+    </label>
+
+    <div class="file-chip" id="fileChip"></div>
+
+    <button class="btn-submit" id="submitBtn" disabled>Submit for review</button>
+
+    <div class="status" id="statusBox"></div>
+  </div>
+</div>
+
+<script>
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const fileChip = document.getElementById('fileChip');
+  const submitBtn = document.getElementById('submitBtn');
+  const statusBox = document.getElementById('statusBox');
+  let selectedFile = null;
+
+  fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
+
+  ['dragover','dragenter'].forEach(evt => dropzone.addEventListener(evt, e => {
+    e.preventDefault(); dropzone.classList.add('drag');
+  }));
+  ['dragleave','drop'].forEach(evt => dropzone.addEventListener(evt, e => {
+    e.preventDefault(); dropzone.classList.remove('drag');
+  }));
+  dropzone.addEventListener('drop', e => {
+    if(e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+
+  function setFile(file){
+    if(!file) return;
+    selectedFile = file;
+    fileChip.style.display = 'flex';
+    fileChip.textContent = `${file.name} · ${(file.size/1024).toFixed(0)} KB`;
+    submitBtn.disabled = false;
+    statusBox.className = 'status';
+  }
+
+  submitBtn.addEventListener('click', async () => {
+    if(!selectedFile) return;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Uploading…';
+    statusBox.className = 'status';
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try{
+      const res = await fetch('/api/upload', { method:'POST', body: formData });
+      const data = await res.json();
+
+      if(res.ok){
+        statusBox.className = 'status ok';
+        statusBox.textContent = `${data.message} (${data.courses_found} course${data.courses_found === 1 ? '' : 's'} found)`;
+        selectedFile = null;
+        fileChip.style.display = 'none';
+        fileInput.value = '';
+      } else {
+        statusBox.className = 'status err';
+        statusBox.textContent = data.error || 'Something went wrong.';
+      }
+    }catch(e){
+      statusBox.className = 'status err';
+      statusBox.textContent = 'Connection error. Try again.';
+    }finally{
+      submitBtn.textContent = 'Submit for review';
+      submitBtn.disabled = !selectedFile;
+    }
+  });
+</script>
+</body>
+</html>
