@@ -11,8 +11,10 @@ import json
 import os
 import uuid
 import time
+import tempfile
 
-PENDING_DIR = os.path.join(os.path.dirname(__file__), "data", "pending")
+PENDING_DIR = os.path.join(tempfile.gettempdir(), "pending_data")
+# PENDING_DIR = os.path.join(os.path.dirname(__file__), "data", "pending")
 INDEX_PATH = os.path.join(PENDING_DIR, "_index.json")
 
 os.makedirs(PENDING_DIR, exist_ok=True)
