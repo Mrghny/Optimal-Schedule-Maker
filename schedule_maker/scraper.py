@@ -73,9 +73,13 @@ def extractSubjects(filepath):
         
 
     sem_dropdown = soup.find('tr', id='ctl00_ContentPlaceHolder1_TR_Period').find_all('td')[1].find('select')
+    selected_season = soup.find('tr', id="TR_batch").find_all('td')[1].find('select').find('option', selected=True)
+    
     selected_sem = sem_dropdown.find('option', selected=True) 
     if selected_sem:
         semester = selected_sem.text.strip()
+    if selected_season:
+        season = selected_season.text.strip()
 
         
 
@@ -133,7 +137,8 @@ def extractSubjects(filepath):
             "Instructor": instructor,
             "Type": type,
             "Department": department,
-            "Semester" : semester
+            "Semester" : semester,
+            "Season": season
         }
         return data
 
@@ -226,3 +231,8 @@ def getOutput(default = "./schedule_maker/Schedules"):
 
     attachMasks(organized_courses)
     return organized_courses
+
+
+if __name__ == "__main__":
+    print(getOutput('/home/margh/Downloads/tmp'))
+    # extractSubjects("/home/margh/Downloads/Schedule.html")

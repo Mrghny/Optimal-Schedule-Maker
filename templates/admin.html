@@ -40,12 +40,12 @@
 <header>
   <h1>Pending uploads ({{ pending|length }})</h1>
   <div>
-    <a class="logout" href="/upload">Upload Page</a>
+    <a class="logout" href="/admin/edit" style="color:var(--ink-faint);">Edit course data</a>
     <p></p>
+    <a class="logout" href="/upload" style="color:var(--ink-faint);">Upload Page | </a>
     <a class="logout" href="/admin/logout">Log out</a>
   </div>
-  
-</header>
+  </header>
 
 <div class="wrap">
   {% if pending|length == 0 %}

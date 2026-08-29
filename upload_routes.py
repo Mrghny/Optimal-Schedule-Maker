@@ -162,6 +162,35 @@ def admin_logout():
 def admin_page():
     pending = storage.list_pending_uploads()
     return render_template("admin.html", pending=pending)
+ 
+ 
+# ── Admin: direct database editing ──────────────────────────────────────
+@upload_bp.route("/admin/edit")
+@admin_required
+def admin_edit_page():
+    return render_template("admin_edit.html", all_courses_json=json.dumps(course_store.all_courses))
+
+@upload_bp.route("/api/admin/delete_course", methods=["POST"])
+@api_admin_required
+def api_delete_course():
+    payload = request.get_json(silent=True)
+    if not payload:
+        return jsonify({"error": "Invalid JSON body."}), 400
+ 
+    department = payload.get("department")
+    course_name = payload.get("course_name")
+    if not department or not course_name:
+        return jsonify({"error": "Missing department or course_name."}), 400
+ 
+    all_data = course_store.all_courses
+    if department in all_data and course_name in all_data[department]:
+        del all_data[department][course_name]
+        if not all_data[department]:   # clean up an emptied-out department
+            del all_data[department]
+        course_store.save_courses(all_data)
+        return jsonify({"message": "Deleted."})
+ 
+    return jsonify({"error": "Not found."}), 404
 
 
 @upload_bp.route("/api/pending/<upload_id>/approve", methods=["POST"])

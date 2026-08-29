@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit course data — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAFAFA; --paper-raised:#fff; --ink:#14171F; --ink-soft:#5B6270; --ink-faint:#9AA0AC;
+    --line:#E2E4E8; --line-strong:#CBCFD6; --accent:#2E4374; --accent-soft:#EAEEF6;
+    --warn:#B3491F; --warn-soft:#FBEEE7; --good:#2F6B4F; --good-soft:#E9F3EE;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; }
+  header{ display:flex; justify-content:space-between; align-items:center; padding:22px 28px; border-bottom:1px solid var(--line); flex-wrap:wrap; gap:12px; }
+  h1{ font-family:'Space Grotesk',sans-serif; font-size:18px; margin:0; }
+  .nav-links{ display:flex; gap:16px; align-items:center; }
+  .nav-links a{ font-size:12.5px; color:var(--ink-soft); text-decoration:none; }
+  .nav-links a:hover{ color:var(--accent); }
+  .nav-links a.logout:hover{ color:var(--warn); }
+
+  .wrap{ max-width:900px; margin:0 auto; padding:24px 28px 80px; }
+
+  input#searchBox{
+    width:100%; padding:11px 14px; border:1px solid var(--line-strong); border-radius:8px;
+    font-size:13.5px; margin-bottom:20px; box-sizing:border-box; font-family:'Inter',sans-serif;
+  }
+
+  details.dept{ margin-bottom:14px; border:1px solid var(--line); border-radius:10px; background:var(--paper-raised); overflow:hidden; }
+  summary.dept-summary{
+    padding:13px 16px; cursor:pointer; font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14px;
+    display:flex; justify-content:space-between; align-items:center; list-style:none;
+  }
+  summary.dept-summary::-webkit-details-marker{ display:none; }
+  .dept-count{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-faint); font-weight:500; }
+
+  .course-row{ border-top:1px solid var(--line); padding:12px 16px; }
+  .course-row-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .course-row-name{ font-size:13px; font-weight:500; }
+  .course-row-actions{ display:flex; gap:6px; flex-shrink:0; }
+  .btn{ padding:6px 12px; border-radius:6px; font-size:11.5px; font-weight:600; cursor:pointer; border:1px solid var(--line-strong); background:#fff; font-family:'Inter',sans-serif; }
+  .btn-edit:hover{ border-color:var(--accent); color:var(--accent); }
+  .btn-delete{ color:var(--warn); }
+  .btn-delete:hover{ background:var(--warn-soft); border-color:var(--warn); }
+  .btn-save{ background:var(--good); color:#fff; border-color:var(--good); }
+  .btn-save:hover{ opacity:0.88; }
+
+  .editor{ display:none; margin-top:10px; }
+  .editor.open{ display:block; }
+  textarea.json-editor{
+    width:100%; min-height:220px; font-family:'JetBrains Mono',monospace; font-size:12px;
+    padding:10px; border:1px solid var(--line-strong); border-radius:7px; box-sizing:border-box;
+    resize:vertical; direction:ltr;
+  }
+  .editor-actions{ display:flex; gap:8px; margin-top:8px; }
+  .editor-error{ color:var(--warn); font-size:12px; margin-top:6px; display:none; white-space:pre-wrap; }
+
+  .empty{ text-align:center; color:var(--ink-faint); padding:60px 0; font-size:13.5px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Edit course data</h1>
+  <div class="nav-links">
+    <a href="/admin">Pending uploads</a>
+    <a href="/admin/logout" class="logout">Log out</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <input type="text" id="searchBox" placeholder="Search courses or departments…">
+  <div id="deptList"></div>
+</div>
+
+<script id="allCoursesData" type="application/json">{{ all_courses_json | safe }}</script>
+
+<script>
+  const allCourses = JSON.parse(document.getElementById('allCoursesData').textContent);
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  const deptListEl = document.getElementById('deptList');
+  const departments = Object.keys(allCourses).sort();
+
+  if(departments.length === 0){
+    deptListEl.innerHTML = '<div class="empty">No course data yet.</div>';
+  }
+
+  // rowId -> { department, courseName, element } -- built alongside the DOM
+  // so department/course names (which can contain slashes, Arabic text,
+  // quotes, etc.) never have to be interpolated into JS strings or CSS
+  // selectors after the fact. Every handler looks them up by rowId only.
+  const rowLookup = {};
+
+  departments.forEach((dept, dIdx) => {
+    const courses = Object.keys(allCourses[dept]).sort();
+
+    const details = document.createElement('details');
+    details.className = 'dept';
+    details.dataset.dept = dept;
+
+    const summary = document.createElement('summary');
+    summary.className = 'dept-summary';
+    summary.innerHTML = `<span>${escapeHtml(dept)}</span><span class="dept-count">${courses.length} course(s)</span>`;
+    details.appendChild(summary);
+
+    courses.forEach((courseName, cIdx) => {
+      const rowId = `${dIdx}-${cIdx}`;
+      const row = document.createElement('div');
+      row.className = 'course-row';
+      row.dataset.course = courseName;
+
+      row.innerHTML = `
+        <div class="course-row-head">
+          <span class="course-row-name">${escapeHtml(courseName)}</span>
+          <div class="course-row-actions">
+            <button class="btn btn-edit" onclick="toggleEditor('${rowId}')">Edit</button>
+            <button class="btn btn-delete" onclick="deleteCourse('${rowId}')">Delete</button>
+          </div>
+        </div>
+        <div class="editor" id="editor-${rowId}">
+          <textarea class="json-editor" id="textarea-${rowId}">${escapeHtml(JSON.stringify(allCourses[dept][courseName], null, 2))}</textarea>
+          <div class="editor-error" id="error-${rowId}"></div>
+          <div class="editor-actions">
+            <button class="btn btn-save" onclick="saveCourse('${rowId}')">Save</button>
+            <button class="btn" onclick="toggleEditor('${rowId}')">Cancel</button>
+          </div>
+        </div>
+      `;
+      details.appendChild(row);
+      rowLookup[rowId] = { department: dept, courseName, element: row };
+    });
+
+    deptListEl.appendChild(details);
+  });
+
+  function toggleEditor(rowId){
+    document.getElementById(`editor-${rowId}`).classList.toggle('open');
+  }
+
+  async function saveCourse(rowId){
+    const { department, courseName } = rowLookup[rowId];
+    const textarea = document.getElementById(`textarea-${rowId}`);
+    const errorEl = document.getElementById(`error-${rowId}`);
+    errorEl.style.display = 'none';
+
+    let parsed;
+    try{
+      parsed = JSON.parse(textarea.value);
+    }catch(e){
+      errorEl.textContent = 'Invalid JSON: ' + e.message;
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    try{
+      const res = await fetch('/api/admin/save_course', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ department, course_name: courseName, data: parsed })
+      });
+      const result = await res.json();
+      if(res.ok){
+        allCourses[department][courseName] = parsed;   // keep local copy in sync
+        toggleEditor(rowId);
+      } else {
+        errorEl.textContent = result.error || 'Save failed.';
+        errorEl.style.display = 'block';
+      }
+    }catch(e){
+      errorEl.textContent = 'Connection error.';
+      errorEl.style.display = 'block';
+    }
+  }
+
+  async function deleteCourse(rowId){
+    const { department, courseName, element } = rowLookup[rowId];
+    if(!confirm(`Delete "${courseName}" from ${department}? This cannot be undone.`)) return;
+
+    try{
+      const res = await fetch('/api/admin/delete_course', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ department, course_name: courseName })
+      });
+      if(res.ok){
+        element.remove();
+      } else {
+        alert('Delete failed.');
+      }
+    }catch(e){
+      alert('Connection error.');
+    }
+  }
+
+  // Simple client-side search across department + course names -- everything
+  // is already loaded, so this needs no server round-trip.
+  document.getElementById('searchBox').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll('.dept').forEach(deptEl => {
+      let deptHasMatch = false;
+      deptEl.querySelectorAll('.course-row').forEach(row => {
+        const match = row.dataset.course.toLowerCase().includes(q) || deptEl.dataset.dept.toLowerCase().includes(q);
+        row.style.display = match ? '' : 'none';
+        if(match) deptHasMatch = true;
+      });
+      deptEl.style.display = (deptHasMatch || q === '') ? '' : 'none';
+      if(q !== '' && deptHasMatch) deptEl.open = true;
+    });
+  });
+</script>
+
+</body>
+</html>

@@ -80,14 +80,14 @@
   .builder-grid > .panel:nth-child(2){ animation-delay:0.12s; }
 
   /* ── Department / semester controls ────────────────────── */
-  select#majorSelect{
+  select#majorSelect, select#seasonSelect{
     width:100%; padding:11px 12px; border-radius:8px; border:1px solid var(--line-strong);
     font-size:13.5px; font-family:'Inter',sans-serif; background:var(--paper-raised);
     color:var(--ink); margin-bottom:14px; appearance:none;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235B6270'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:right 14px center;
   }
-  select#majorSelect:disabled{ color:var(--ink-faint); cursor:not-allowed; }
+  select#majorSelect:disabled, select#seasonSelect:disabled{ color:var(--ink-faint); cursor:not-allowed; }
 
   #semesterTabs{ display:none; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
   .sem-tab{
@@ -419,6 +419,10 @@
         <h2>Choose courses</h2>
       </div>
 
+      <select id="seasonSelect" disabled>
+        <option value="">All seasons</option>
+      </select>
+
       <select id="majorSelect" disabled>
         <option>Fetching departments…</option>
       </select>
@@ -545,6 +549,17 @@
   let excludedGroups = {};
   let activeDept = null;
   let activeSemester = null;
+  let activeSeason = '';   // '' = All seasons (no filter)
+
+  // Old scraped data has no Season field at all (only added going forward),
+  // so anything missing it falls into "Unspecified" rather than silently
+  // disappearing once this filter is turned on.
+  function seasonOf(session){
+    return session.Season && session.Season.trim() ? session.Season.trim() : 'Unspecified';
+  }
+  function sessionMatchesFilters(s, sem){
+    return String(s.Semester) === sem && (!activeSeason || seasonOf(s) === activeSeason);
+  }
 
   const palette = ["--c1","--c2","--c3","--c4","--c5","--c6","--c7","--c8","--c9","--c10"];
   let courseColorMap = {};
@@ -705,29 +720,60 @@
         sel.innerHTML += `<option value="${d}">${d}</option>`;
       });
       sel.disabled = false;
+
+      // Build the season dropdown from every session across every department
+      const seasonSet = new Set();
+      Object.values(globalData).forEach(deptCourses => {
+        Object.values(deptCourses).forEach(groupMap => {
+          Object.values(groupMap).forEach(groupData => {
+            groupData.sessions.forEach(s => seasonSet.add(seasonOf(s)));
+          });
+        });
+      });
+      const seasonSel = document.getElementById('seasonSelect');
+      const seasons = [...seasonSet].sort();
+      seasons.forEach(season => {
+        seasonSel.innerHTML += `<option value="${escapeHtml(season)}">${escapeHtml(season)}</option>`;
+      });
+      seasonSel.disabled = seasons.length === 0;
     }catch(e){ console.error("Load failed", e); }
   }
+
+  document.getElementById('seasonSelect').onchange = (e) => {
+    activeSeason = e.target.value;
+    // re-filter whatever's currently showing, without losing the user's
+    // department/semester selection if it's still valid under the new season
+    if(activeDept) refreshSemesterTabs(activeSemester);
+  };
 
   document.getElementById('majorSelect').onchange = (e) => {
     activeDept = e.target.value;
     activeSemester = null;
 
-    const tabsEl = document.getElementById('semesterTabs');
-    const courseListEl = document.getElementById('courseList');
-
     if(!activeDept){
+      const tabsEl = document.getElementById('semesterTabs');
+      const courseListEl = document.getElementById('courseList');
       tabsEl.style.display = 'none';
       tabsEl.innerHTML = '';
       courseListEl.innerHTML = '<p class="empty-note">Select a department to view available courses.</p>';
       return;
     }
 
-    // Data shape: { CourseName: { GroupName: { sessions:[...], _mask:... } } }
+    refreshSemesterTabs(null);
+  };
+
+  // Builds the semester tabs for the currently active department, respecting
+  // activeSeason. Shared by both the department switch and the season
+  // switch, so the two stay consistent instead of duplicating this logic.
+  function refreshSemesterTabs(preferredSem){
+    const tabsEl = document.getElementById('semesterTabs');
+    const courseListEl = document.getElementById('courseList');
+
     const semesterSet = new Set();
     Object.values(globalData[activeDept]).forEach(groupMap => {
       Object.values(groupMap).forEach(groupData => {
         groupData.sessions.forEach(s => {
-          if(s.Semester) semesterSet.add(String(s.Semester));
+          if(s.Semester && (!activeSeason || seasonOf(s) === activeSeason)) semesterSet.add(String(s.Semester));
         });
       });
     });
@@ -739,9 +785,15 @@
     ).join('');
     tabsEl.style.display = 'flex';
 
-    if(semesters.length > 0) selectSemester(semesters[0]);
-    else courseListEl.innerHTML = '<p class="empty-note">No semesters found.</p>';
-  };
+    if(semesters.length === 0){
+      courseListEl.innerHTML = '<p class="empty-note">No courses found for this department in the selected season.</p>';
+      return;
+    }
+
+    // keep the same semester selected across a season change if it's still valid
+    const nextSem = (preferredSem && semesters.includes(preferredSem)) ? preferredSem : semesters[0];
+    selectSemester(nextSem);
+  }
 
   function selectSemester(sem){
     activeSemester = sem;
@@ -756,12 +808,12 @@
     const deptCourses = globalData[activeDept];
     const coursesInSem = Object.keys(deptCourses).filter(courseName =>
       Object.values(deptCourses[courseName]).some(groupData =>
-        groupData.sessions.some(s => String(s.Semester) === sem)
+        groupData.sessions.some(s => sessionMatchesFilters(s, sem))
       )
     );
 
     if(coursesInSem.length === 0){
-      courseListEl.innerHTML = '<p class="empty-note">No courses in this semester.</p>';
+      courseListEl.innerHTML = '<p class="empty-note">No courses in this semester' + (activeSeason ? ' for this season' : '') + '.</p>';
       return;
     }
 
@@ -770,7 +822,7 @@
     coursesInSem.forEach((courseName, idx) => {
       const groupMap = deptCourses[courseName];
       const groups = Object.keys(groupMap).filter(g =>
-        groupMap[g].sessions.some(s => String(s.Semester) === sem)
+        groupMap[g].sessions.some(s => sessionMatchesFilters(s, sem))
       ).sort();
 
       window._courseIndex[idx] = courseName;
@@ -781,7 +833,7 @@
       const lecturerNames = new Set();
       groups.forEach(g => {
         groupMap[g].sessions.forEach(s => {
-          if(String(s.Semester) === sem && s.Instructor && s.Instructor.trim()) lecturerNames.add(s.Instructor.trim());
+          if(sessionMatchesFilters(s, sem) && s.Instructor && s.Instructor.trim()) lecturerNames.add(s.Instructor.trim());
         });
       });
 
