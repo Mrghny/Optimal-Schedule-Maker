@@ -1,7 +1,7 @@
 # 📅 Optimal Schedule Maker
 
 A schedule optimization tool for **AASTMT students** that generates all possible
-conflict-free schedules from your selected courses and ranks them based on your preferences.
+conflict-free schedules from your selected courses and ranks them based on the selected preferences.
 
 ---
 
@@ -21,7 +21,6 @@ accordingly.
 | Balanced | Penalizes uneven day distribution |
 | No 8am/4pm Slots | +5pts for no early/late slots |
 | Free Days | +10pts if a selected day is free, -10pts if not |
-| Preferred Lecturer | +5pts per session with that lecturer |
 
 ---
 
@@ -35,16 +34,16 @@ A full UI where you select your courses and preferences and view the ranked sche
 > and place them in the `schedule_maker/Schedules/` folder.
 
 **Screenshots:**
-<img width="1319" height="565" alt="image" src="https://github.com/user-attachments/assets/ef4466e4-57ff-424c-be49-6355f8c77a6b" />
+<img width="1179" height="661" alt="image" src="https://github.com/user-attachments/assets/4c6ab689-713d-4e3d-8bb1-eac7ad300f7c" />
 
-<img width="1319" height="603" alt="image" src="https://github.com/user-attachments/assets/fe57e8a3-2767-4942-9b2d-6cda72d8d7b7" />
+<img width="1181" height="797" alt="image" src="https://github.com/user-attachments/assets/8156baf1-b783-4e9b-a4d2-587e346fb152" />
 
-<img width="1319" height="599" alt="image" src="https://github.com/user-attachments/assets/67bde71c-142e-4b1f-9bde-1e9b66be2bf2" />
+<img width="1182" height="610" alt="image" src="https://github.com/user-attachments/assets/f14929b0-57ae-4550-92c3-84848fd3659b" />
 
 #### Setup
 ```bash
-git clone https://github.com/<USERNAME>/<REPO>.git
-cd <REPO>
+git clone https://github.com/Mrghny/Optimal-Schedule-Maker/
+cd Optimal-Schedule-Maker
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -54,35 +53,13 @@ Then open `http://localhost:5000` in your browser.
 
 ---
 
-### 💻 CLI Version
-A standalone terminal version with 7 sample subjects included to try out immediately.
-Outputs a paginated `schedules.html` file with all ranked schedule options.
-
-#### Download
-[⬇️ Download ScheduleMaker.exe](https://github.com/Mrghny/Optimal-Schedule-Maker-CLI/releases/download/v1.0/ScheduleMaker)
-
-> Windows only. On first run, click **"More info" → "Run anyway"** if Windows Defender
-> shows a warning.
-
-#### Or run from source
-```bash
-git clone https://github.com/<USERNAME>/<REPO>.git
-cd <REPO>/cli
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python main.py
-```
-
----
-
 ## Adding Your Own Schedules
 
 1. Log in to the AASTMT student portal
 2. Navigate to the schedule page for a subject
-3. Press `Ctrl+S` and save the **full webpage** (not just HTML)
-4. Place the saved file in the `Schedules/` folder
-5. Run the app
+3. Press `Ctrl+S`and save
+4. Change environment variables to set admin password
+5. Upload them from the /upload route
 
 ---
 
@@ -90,5 +67,6 @@ python main.py
 - Python
 - BeautifulSoup4 (scraping)
 - Flask (web version)
+- MongoDB
 - Backtracking algorithm (schedule generation)
 - Vanilla JS + HTML/CSS (frontend)
