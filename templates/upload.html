@@ -42,8 +42,17 @@
   .status{ margin-top:16px; padding:12px 14px; border-radius:8px; font-size:13px; display:none; }
   .status.ok{ background:var(--good-soft); color:var(--good); display:block; }
   .status.err{ background:var(--warn-soft); color:var(--warn); display:block; }
+  a.logout{ font-size:12.5px; color:var(--ink-faint); text-decoration:none; }
+  a.logout:hover{ color:var(--warn); }
+  header{ display:flex; justify-content:space-between; align-items:center; padding:22px 28px; border-bottom:1px solid var(--line); }
+
 </style>
 </head>
+<header>
+  <p></p>
+  <a class="logout" href="/admin">Review Page</a>
+
+</header>
 <body>
 <div class="wrap">
   <p class="eyebrow">AASTMT · Add Data</p>

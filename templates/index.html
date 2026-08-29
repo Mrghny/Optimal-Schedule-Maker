@@ -26,6 +26,7 @@
     --c9:#4C7A8B; --c10:#A8763F;
   }
   *{ box-sizing:border-box; }
+  html, body{ max-width:100%; overflow-x:hidden; }
   body{
     margin:0; background:var(--paper); color:var(--ink);
     font-family:'Inter', system-ui, sans-serif; font-size:14px;
@@ -261,6 +262,7 @@
     display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:12px;
   }
   .nav-controls{ display:flex; align-items:center; gap:16px; }
+  .export-controls{ display:flex; align-items:center; gap:8px; }
   .btn-nav{
     padding:8px 15px; border:1px solid var(--line-strong); background:var(--paper-raised); color:var(--ink);
     border-radius:7px; cursor:pointer; font-size:12.5px; font-weight:600; font-family:'Inter',sans-serif;
@@ -313,19 +315,51 @@
 
   .no-results{ text-align:center; padding:30px; color:var(--ink-faint); font-size:13px; }
 
+  /* The export render target is a hidden, offscreen copy of the grid used
+     only for PNG/PDF capture. Animations there would race against
+     html2canvas's snapshot timing -- cards with a longer reveal delay could
+     get captured still mid-fade (faded/blank), which is exactly the bug
+     this rule prevents by forcing instant full opacity, only in this copy. */
+  #exportRenderTarget, #exportRenderTarget *{
+    animation:none !important;
+    opacity:1 !important;
+  }
+
+  /* ── Mobile agenda view (replaces the grid on narrow screens) ───────── */
+  .agenda{ display:flex; flex-direction:column; gap:20px; }
+  .agenda-day{ animation:rowReveal 0.22s ease both; }
+  .agenda-day-label{
+    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+    color:var(--ink-soft); margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--line);
+  }
+  .agenda-card{
+    min-height:auto; text-align:left; align-items:flex-start; margin-bottom:8px; padding:12px 14px;
+  }
+  .agenda-card:last-child{ margin-bottom:0; }
+
   /* ── Phone ──────────────────────────────────────────────── */
   @media (max-width:640px){
     header{ flex-direction:column; align-items:flex-start; gap:10px; padding:24px 16px 18px; }
     h1.title{ font-size:24px; }
     .header-meta{ text-align:left; }
 
-    .app{ padding:18px 16px 60px; }
+    .app{ padding:18px 16px 100px; }   /* extra bottom room so the fixed generate bar never covers content */
     .panel{ padding:16px; }
 
     .builder-grid{ gap:16px; }
     .course-list{ max-height:360px; }
 
     .selection-panel{ position:static; }
+
+    /* Generate button becomes a persistent bottom bar on mobile -- reachable
+       from anywhere without scrolling through the whole course list first,
+       which is what made it unreachable before on longer course lists. */
+    .generate-bar{
+      position:fixed; left:0; right:0; bottom:0; z-index:60;
+      background:var(--paper-raised); border-top:1px solid var(--line);
+      padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+      box-shadow:0 -6px 16px rgba(20,23,31,0.08);
+    }
 
     /* bigger tap targets on touch */
     .btn-add{ padding:9px 15px; font-size:12.5px; }
@@ -339,7 +373,23 @@
 
     .results-head{ align-items:flex-start; }
     .nav-controls{ width:100%; justify-content:space-between; }
+    .export-controls{ width:100%; }
+    .export-controls .btn-nav{ flex:1; }
     .board-wrap{ padding:14px; -webkit-overflow-scrolling:touch; }
+  }
+
+  /* ── Very narrow phones ────────────────────────────────────────────── */
+  @media (max-width:520px){
+    /* course-header now holds 2 toggle buttons + name + Add button --
+       more than it was designed for with just 1 toggle button. Let it
+       wrap onto two lines rather than clip or squeeze anything out. */
+    .course-header{ flex-wrap:wrap; row-gap:8px; }
+    .course-header-left{ flex-basis:100%; }
+    .course-name{ white-space:normal; }
+    .btn-add{ margin-left:auto; }
+
+    .toggle-groups{ padding:6px 8px; font-size:10px; }
+    h1.title{ font-size:21px; }
   }
 </style>
 </head>
@@ -352,6 +402,9 @@
   </div>
   <div class="header-meta">
     Select your courses and preferences below.
+    <div style="margin-top:8px;">
+      <a href="/upload" style="font-size:12px; color:var(--accent); text-decoration:none; font-weight:600;">+ Add missing course data</a>
+    </div>
   </div>
 </header>
 
@@ -417,8 +470,10 @@
           <input type="number" id="numSchedules" value="5" min="1" max="50">
         </div>
 
-        <button id="optimizeBtn" class="btn-submit" disabled><span id="btnLabel" class="btn-label">Generate schedule</span></button>
-        <div class="progress-track" id="progressTrack" hidden><div class="progress-fill"></div></div>
+        <div class="generate-bar">
+          <button id="optimizeBtn" class="btn-submit" disabled><span id="btnLabel" class="btn-label">Generate schedule</span></button>
+          <div class="progress-track" id="progressTrack" hidden><div class="progress-fill"></div></div>
+        </div>
       </div>
     </div>
 
@@ -430,6 +485,10 @@
       <div class="section-label" style="margin-bottom:0;">
         <span class="section-num">2</span>
         <h2>Your schedules</h2>
+      </div>
+      <div class="export-controls">
+        <button class="btn-nav" id="downloadImgBtn" onclick="downloadScheduleImage()">⬇ PNG</button>
+        <button class="btn-nav" id="downloadPdfBtn" onclick="downloadSchedulePDF()">⬇ PDF</button>
       </div>
       <div class="nav-controls">
         <button class="btn-nav" onclick="changeOption(-1)">← Previous</button>
@@ -474,6 +533,8 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
   // ─── State ──────────────────────────────────────────────────────────────
   let globalData = {};
@@ -492,6 +553,20 @@
 
   const DAYS = ['Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
   const PERIOD_MIN = 1, PERIOD_MAX = 17;
+  let lastRenderWasMobile = null;
+
+  // Re-render the schedule if the viewport crosses the mobile/desktop
+  // breakpoint after it was already drawn -- e.g. the schedule was generated
+  // on a wide window, then the window was resized/rotated narrower. Without
+  // this, the grid stays stuck rendered even on a now-narrow screen, which
+  // is exactly what causes horizontal overflow and a partial screenshot/PDF.
+  function checkLayoutBreakpoint(){
+    if(allOptions.length === 0) return;
+    const isMobileNow = window.matchMedia('(max-width: 640px)').matches;
+    if(isMobileNow !== lastRenderWasMobile) renderAll();
+  }
+  window.addEventListener('resize', checkLayoutBreakpoint);
+  window.addEventListener('orientationchange', checkLayoutBreakpoint);
 
   // Escapes untrusted text before it's inserted via innerHTML. Course names,
   // instructor names, and group letters all ultimately come from uploaded
@@ -953,8 +1028,106 @@
     renderAll();
   }
 
-  function renderAll(){
+  // ─── Hidden export renderer ─────────────────────────────────────────────
+  // Exports should always look like the desktop grid, even when the visible
+  // page is showing the mobile agenda view. Rather than trying to convert
+  // whatever's currently on screen, we build the desktop grid into an
+  // offscreen container (real layout, just positioned outside the viewport)
+  // and capture that instead -- so the exported image/PDF is identical
+  // regardless of what device generated it.
+  function getExportContainer(){
+    let el = document.getElementById('exportRenderTarget');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'exportRenderTarget';
+      el.className = 'board-wrap';
+      el.style.position = 'fixed';
+      el.style.left = '-99999px';
+      el.style.top = '0';
+      el.style.width = '820px';   // fixed desktop-equivalent width regardless of real viewport
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+
+  function renderForExport(){
     const sessions = allOptions[currentIndex];
+    const container = getExportContainer();
+    container.innerHTML = buildGridHtml(sessions);   // always the desktop grid, never the agenda
+    return container;
+  }
+
+  async function downloadScheduleImage(){
+    if(allOptions.length === 0) return;
+    const target = renderForExport();
+
+    const btn = document.getElementById('downloadImgBtn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Preparing…';
+    btn.disabled = true;
+
+    try{
+      const canvas = await html2canvas(target, {
+        backgroundColor: '#ffffff',
+        scale: 2,                          // export at 2x for a crisp, non-blurry image
+        windowWidth: target.scrollWidth,   // capture full width even if narrower than the viewport is showing
+        windowHeight: target.scrollHeight,
+        scrollX: 0,
+        scrollY: -window.scrollY           // corrects a known html2canvas offset bug when the page itself is scrolled
+      });
+      const link = document.createElement('a');
+      link.download = `schedule-option-${currentIndex + 1}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }catch(e){
+      alert('Could not generate the image. Try again.');
+      console.error(e);
+    }finally{
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  async function downloadSchedulePDF(){
+    if(allOptions.length === 0) return;
+    const target = renderForExport();
+
+    const btn = document.getElementById('downloadPdfBtn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Preparing…';
+    btn.disabled = true;
+
+    try{
+      const canvas = await html2canvas(target, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        windowWidth: target.scrollWidth,
+        windowHeight: target.scrollHeight,
+        scrollX: 0,
+        scrollY: -window.scrollY
+      });
+      const imgData = canvas.toDataURL('image/png');
+
+      const { jsPDF } = window.jspdf;
+      // match the PDF page size to the actual exported image, landscape,
+      // so the schedule fills the page instead of sitting on a fixed A4 canvas
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`schedule-option-${currentIndex + 1}.pdf`);
+    }catch(e){
+      alert('Could not generate the PDF. Try again.');
+      console.error(e);
+    }finally{
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  function renderAll(){    const sessions = allOptions[currentIndex];
     document.getElementById('optionCounter').innerText = `Option ${currentIndex + 1} of ${allOptions.length}`;
 
     // Legend
@@ -975,7 +1148,17 @@
         </div>`;
     });
 
-    // Timetable
+    // Timetable — desktop gets the grid, phones get a stacked agenda
+    // (a 6-day x N-period grid can't fit a narrow screen without either
+    // tiny unreadable cells or horizontal scrolling, so mobile gets a
+    // fundamentally different, vertically-stacked layout instead)
+    const isMobile = window.matchMedia('(max-width: 640px)').matches;
+    lastRenderWasMobile = isMobile;
+    const html = isMobile ? buildAgendaHtml(sessions) : buildGridHtml(sessions);
+    document.getElementById('tableContainer').innerHTML = html;
+  }
+
+  function buildGridHtml(sessions){
     let maxPeriod = PERIOD_MIN;
     sessions.forEach(s => { if(s['end-time'] > maxPeriod) maxPeriod = s['end-time']; });
     maxPeriod = Math.max(maxPeriod, 10);
@@ -1024,7 +1207,43 @@
       html += `</tr>`;
     });
 
-    document.getElementById('tableContainer').innerHTML = html + `</tbody></table>`;
+    return html + `</tbody></table>`;
+  }
+
+  function buildAgendaHtml(sessions){
+    let html = `<div class="agenda">`;
+    let dayDelay = 0;
+
+    DAYS.forEach(day => {
+      const daySessions = sessions
+        .filter(s => s.Day.trim().toLowerCase() === day.toLowerCase())
+        .sort((a, b) => parseInt(a['start-time']) - parseInt(b['start-time']));
+
+      if(daySessions.length === 0) return;   // skip empty days entirely -- no wasted space
+
+      html += `<div class="agenda-day">
+        <div class="agenda-day-label mono" style="animation-delay:${dayDelay}ms">${day}</div>`;
+
+      daySessions.forEach((session, i) => {
+        const colorVar = courseColorMap[session.Course] || '--c8';
+        const color = colorOf(colorVar);
+        const startP = parseInt(session['start-time']), endP = parseInt(session['end-time']);
+        const startT = PERIOD_TIMES[startP], endT = PERIOD_TIMES[endP];
+        const timeLabel = (startT && endT) ? `${fmtTime(startT.start)} – ${fmtTime(endT.end)}` : '';
+
+        html += `<div class="session-card agenda-card reveal" style="background:${color}22; border-left-color:${color}; animation-delay:${dayDelay + i * 20}ms;">
+          <div class="session-type" style="color:${color};">${escapeHtml(session.Type)}</div>
+          <div class="session-name">${escapeHtml(session.Course.split('-')[0].trim())}</div>
+          <div class="session-time mono">${timeLabel}</div>
+          <div class="session-instr">${escapeHtml(session.Instructor || '')}</div>
+        </div>`;
+      });
+
+      html += `</div>`;
+      dayDelay += 40;
+    });
+
+    return html + `</div>`;
   }
 
   loadData();

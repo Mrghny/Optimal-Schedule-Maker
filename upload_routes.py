@@ -19,8 +19,6 @@ RATE_LIMIT_WINDOW_SECONDS = 60 * 60         # per hour, per IP
 
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")   # set in your environment, never hardcode
 
-# In-memory rate limit store: { ip: [timestamps] }. Resets on server restart --
-# fine for now; move to the DB (or Redis) later if this needs to survive restarts.
 _upload_log = defaultdict(list)
 
 _login_log = defaultdict(list)
@@ -188,13 +186,11 @@ def reject(upload_id):
 
 
 if __name__ == "__main__":
-
-    # from scraper_module import getOutput
     import tempfile, os
 
     with tempfile.TemporaryDirectory() as tmp:
         with open(os.path.join(tmp, "test.html"), "w", encoding="utf-8") as f:
             f.write(open("schedule_maker/Schedules/DLD.html", encoding="utf-8").read())
         result = getOutput(default=tmp)
-        print(result.keys())                       # should show one department
-        print(next(iter(result.values())).keys())   # should show that department's course names
+        print(result.keys())
+        print(next(iter(result.values())).keys())

@@ -1,12 +1,3 @@
-"""
-Storage layer for crowdsourced course-data uploads.
-
-Currently backed by JSON files under PENDING_DIR. Every function here is
-intentionally storage-agnostic in its *signature* so swapping this out for
-a real database later (Mongo/Postgres) only means rewriting this file --
-nothing in upload_routes.py or main.py needs to change when you do.
-"""
-
 import json
 import os
 import uuid

@@ -6,9 +6,6 @@ import course_store
 from upload_routes import upload_bp
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-# app.secret_key = os.environ.get("SECRET_KEY", "dev")
-
-
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 
